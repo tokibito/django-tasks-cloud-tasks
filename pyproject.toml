@@ -1,0 +1,57 @@
+[project]
+name = "django-tasks-cloud-tasks"
+version = "0.1.0"
+description = "A Google Cloud Tasks backend for Django 6.0's built-in task framework"
+license = {text = "MIT"}
+authors = [{name = "Shinya Okano"}]
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "Django>=6.0",
+    "google-cloud-tasks>=2.0.0",
+    "google-auth>=2.0.0",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Environment :: Web Environment",
+    "Framework :: Django",
+    "Framework :: Django :: 6.0",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+keywords = ["django", "tasks", "cloud-tasks", "google-cloud", "async"]
+
+[project.urls]
+Homepage = "https://github.com/tokibito/django-tasks-cloud-tasks"
+Repository = "https://github.com/tokibito/django-tasks-cloud-tasks"
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-django",
+    "ruff",
+]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["django_tasks_cloud_tasks*"]
+
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "tests.settings"
+python_files = ["test_*.py"]
+pythonpath = ["."]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 88
+
+[tool.ruff.lint]
+select = ["E", "W", "I", "B"]
+ignore = ["E501"]
