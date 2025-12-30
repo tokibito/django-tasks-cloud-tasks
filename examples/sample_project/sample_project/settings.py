@@ -120,9 +120,13 @@ TASKS = {
         "QUEUES": ["default", "high-priority"],
         "OPTIONS": {
             # GCP project ID
-            "CLOUD_TASKS_PROJECT": os.environ.get("GOOGLE_CLOUD_PROJECT", "your-project-id"),
+            "CLOUD_TASKS_PROJECT": os.environ.get(
+                "GOOGLE_CLOUD_PROJECT", "your-project-id"
+            ),
             # Cloud Tasks location
-            "CLOUD_TASKS_LOCATION": os.environ.get("CLOUD_TASKS_LOCATION", "asia-northeast1"),
+            "CLOUD_TASKS_LOCATION": os.environ.get(
+                "CLOUD_TASKS_LOCATION", "asia-northeast1"
+            ),
             # Task execution endpoint base URL
             "TASK_HANDLER_HOST": os.environ.get("SERVICE_URL", "http://localhost:8000"),
             # Task execution endpoint path (default: /cloudtasks/execute/)

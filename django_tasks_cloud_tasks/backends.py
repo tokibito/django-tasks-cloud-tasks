@@ -34,10 +34,18 @@ class CloudTasksBackend(BaseTaskBackend):
 
         # Get from options, or auto-detect
         # Use same option names as django-database-task for consistency
-        self.project_id = self.options.get("CLOUD_TASKS_PROJECT") or detect_gcp_project()
-        self.location = self.options.get("CLOUD_TASKS_LOCATION") or detect_gcp_location()
-        self.task_handler_host = self.options.get("TASK_HANDLER_HOST") or detect_task_handler_host()
-        self.task_handler_path = self.options.get("TASK_HANDLER_PATH", "/cloudtasks/execute/")
+        self.project_id = (
+            self.options.get("CLOUD_TASKS_PROJECT") or detect_gcp_project()
+        )
+        self.location = (
+            self.options.get("CLOUD_TASKS_LOCATION") or detect_gcp_location()
+        )
+        self.task_handler_host = (
+            self.options.get("TASK_HANDLER_HOST") or detect_task_handler_host()
+        )
+        self.task_handler_path = self.options.get(
+            "TASK_HANDLER_PATH", "/cloudtasks/execute/"
+        )
 
         # OIDC configuration
         self.oidc_service_account_email = (
