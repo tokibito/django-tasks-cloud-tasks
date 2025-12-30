@@ -72,7 +72,7 @@ INSTALLED_APPS = [
 
 ### 2. Configure the task backend
 
-On Cloud Run / App Engine, settings are auto-detected. Minimal configuration:
+**On Cloud Run / App Engine**, all settings are auto-detected from the environment. You only need:
 
 ```python
 TASKS = {
@@ -83,7 +83,43 @@ TASKS = {
 }
 ```
 
-For local development, set environment variables (`GOOGLE_CLOUD_PROJECT`, `CLOUD_TASKS_LOCATION`, `SERVICE_URL`) or configure explicitly:
+> **Note:** On GCP environments (Cloud Run, App Engine, GCE), the following are automatically detected:
+> - **Project ID**: from `GOOGLE_CLOUD_PROJECT` env var or GCP metadata server
+> - **Location**: from `CLOUD_TASKS_LOCATION`, `CLOUD_RUN_REGION` env var, or metadata server
+> - **Service URL**: from `SERVICE_URL` env var, or generated from `K_SERVICE` (Cloud Run) / `GAE_SERVICE` (App Engine)
+> - **Service Account**: from metadata server (for OIDC authentication)
+>
+> **About Service Accounts:** On GCP, applications run with a **runtime service account** (not API keys or JSON key files). Cloud Run, App Engine, and GCE automatically provide credentials via the metadata server. You don't need to create or download any key files.
+>
+> Simply grant the `roles/cloudtasks.enqueuer` role to your runtime service account:
+> ```bash
+> # For Cloud Run (uses Compute Engine default service account by default)
+> gcloud projects add-iam-policy-binding PROJECT_ID \
+>     --member="serviceAccount:PROJECT_NUMBER-compute@developer.gserviceaccount.com" \
+>     --role="roles/cloudtasks.enqueuer"
+> ```
+> The backend will automatically use these credentials for both creating tasks and OIDC authentication.
+
+**For local development**, set environment variables:
+
+```bash
+export GOOGLE_CLOUD_PROJECT="your-project-id"
+export CLOUD_TASKS_LOCATION="asia-northeast1"
+export SERVICE_URL="http://localhost:8000"
+```
+
+With these environment variables set, the same minimal configuration works:
+
+```python
+TASKS = {
+    'default': {
+        'BACKEND': 'django_tasks_cloud_tasks.CloudTasksBackend',
+        'QUEUES': [],
+    },
+}
+```
+
+Or configure explicitly in settings:
 
 ```python
 TASKS = {
