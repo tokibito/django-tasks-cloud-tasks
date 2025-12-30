@@ -148,7 +148,7 @@
         <h3>Simulate Task Execution</h3>
         <p>Cloud Tasks will send an HTTP POST request to your endpoint. For local testing without emulator, you can manually trigger the task:</p>
         <pre>
-curl -X POST http://localhost:8000/tasks/execute/ \
+curl -X POST http://localhost:8000/cloudtasks/execute/ \
   -H "Content-Type: application/json" \
   -d '{
     "task_id": "{{ task_id }}",

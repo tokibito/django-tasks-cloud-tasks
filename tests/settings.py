@@ -23,9 +23,9 @@ TASKS = {
         "BACKEND": "django_tasks_cloud_tasks.CloudTasksBackend",
         "QUEUES": ["default"],
         "OPTIONS": {
-            "PROJECT_ID": "test-project",
-            "LOCATION": "us-central1",
-            "SERVICE_URL": "https://test.example.com",
+            "CLOUD_TASKS_PROJECT": "test-project",
+            "CLOUD_TASKS_LOCATION": "us-central1",
+            "TASK_HANDLER_HOST": "https://test.example.com",
         },
     },
 }

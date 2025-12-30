@@ -74,7 +74,7 @@ In another terminal, simulate the request that Cloud Tasks sends to the endpoint
 
 ```bash
 # Simulate addition task execution
-curl -X POST http://localhost:8000/tasks/execute/ \
+curl -X POST http://localhost:8000/cloudtasks/execute/ \
   -H "Content-Type: application/json" \
   -d '{
     "task_id": "test-task-001",
@@ -98,7 +98,7 @@ Example response:
 
 ```bash
 # Notification task
-curl -X POST http://localhost:8000/tasks/execute/ \
+curl -X POST http://localhost:8000/cloudtasks/execute/ \
   -H "Content-Type: application/json" \
   -d '{
     "task_id": "test-notify-001",
@@ -113,7 +113,7 @@ curl -X POST http://localhost:8000/tasks/execute/ \
   }'
 
 # Task with context
-curl -X POST http://localhost:8000/tasks/execute/ \
+curl -X POST http://localhost:8000/cloudtasks/execute/ \
   -H "Content-Type: application/json" \
   -d '{
     "task_id": "test-context-001",
@@ -239,11 +239,11 @@ Set the following environment variables in Cloud Run:
 | `/enqueue/urgent/` | POST | Enqueue high-priority task |
 | `/enqueue/context/` | POST | Enqueue task with context |
 | `/enqueue/failing/` | POST | Enqueue task that always fails (for retry testing) |
-| `/tasks/execute/` | POST | Task execution endpoint from Cloud Tasks |
+| `/cloudtasks/execute/` | POST | Task execution endpoint from Cloud Tasks |
 
 ## Troubleshooting
 
-### "PROJECT_ID is required" error
+### "CLOUD_TASKS_PROJECT is required" error
 
 Set the environment variable `GOOGLE_CLOUD_PROJECT`:
 
@@ -251,7 +251,7 @@ Set the environment variable `GOOGLE_CLOUD_PROJECT`:
 export GOOGLE_CLOUD_PROJECT="your-project-id"
 ```
 
-### "LOCATION is required" error
+### "CLOUD_TASKS_LOCATION is required" error
 
 Set the environment variable `CLOUD_TASKS_LOCATION`:
 
@@ -259,7 +259,7 @@ Set the environment variable `CLOUD_TASKS_LOCATION`:
 export CLOUD_TASKS_LOCATION="asia-northeast1"
 ```
 
-### "SERVICE_URL is required" error
+### "TASK_HANDLER_HOST is required" error
 
 Set the environment variable `SERVICE_URL`:
 

@@ -33,31 +33,33 @@ class CloudTasksBackend(BaseTaskBackend):
         )
 
         # Get from options, or auto-detect
-        self.project_id = self.options.get("PROJECT_ID") or detect_gcp_project()
-        self.location = self.options.get("LOCATION") or detect_gcp_location()
-        self.service_url = self.options.get("SERVICE_URL") or detect_task_handler_host()
+        # Use same option names as django-database-task for consistency
+        self.project_id = self.options.get("CLOUD_TASKS_PROJECT") or detect_gcp_project()
+        self.location = self.options.get("CLOUD_TASKS_LOCATION") or detect_gcp_location()
+        self.task_handler_host = self.options.get("TASK_HANDLER_HOST") or detect_task_handler_host()
+        self.task_handler_path = self.options.get("TASK_HANDLER_PATH", "/cloudtasks/execute/")
 
         # OIDC configuration
         self.oidc_service_account_email = (
             self.options.get("OIDC_SERVICE_ACCOUNT_EMAIL")
             or detect_default_service_account()
         )
-        self.oidc_audience = self.options.get("OIDC_AUDIENCE") or self.service_url
+        self.oidc_audience = self.options.get("OIDC_AUDIENCE") or self.task_handler_host
 
         # Validate required settings
         if not self.project_id:
             raise ImproperlyConfigured(
-                "PROJECT_ID is required. Set it in OPTIONS or ensure "
+                "CLOUD_TASKS_PROJECT is required. Set it in OPTIONS or ensure "
                 "GOOGLE_CLOUD_PROJECT environment variable is set."
             )
         if not self.location:
             raise ImproperlyConfigured(
-                "LOCATION is required. Set it in OPTIONS or ensure "
+                "CLOUD_TASKS_LOCATION is required. Set it in OPTIONS or ensure "
                 "CLOUD_TASKS_LOCATION environment variable is set."
             )
-        if not self.service_url:
+        if not self.task_handler_host:
             raise ImproperlyConfigured(
-                "SERVICE_URL is required. Set it in OPTIONS or deploy to "
+                "TASK_HANDLER_HOST is required. Set it in OPTIONS or deploy to "
                 "Cloud Run/App Engine for auto-detection."
             )
 
@@ -90,7 +92,7 @@ class CloudTasksBackend(BaseTaskBackend):
         parent = client.queue_path(self.project_id, self.location, task.queue_name)
 
         # Build task execution URL
-        execute_url = f"{self.service_url.rstrip('/')}/tasks/execute/"
+        execute_url = f"{self.task_handler_host.rstrip('/')}{self.task_handler_path}"
 
         http_request = {
             "http_method": tasks_v2.HttpMethod.POST,

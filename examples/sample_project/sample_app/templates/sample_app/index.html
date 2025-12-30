@@ -206,7 +206,7 @@
         <p>You can manually simulate the Cloud Tasks HTTP callback by sending POST requests to the task execution endpoint:</p>
         <pre>
 # Simulate addition task execution
-curl -X POST http://localhost:8000/tasks/execute/ \
+curl -X POST http://localhost:8000/cloudtasks/execute/ \
   -H "Content-Type: application/json" \
   -d '{
     "task_id": "test-task-001",

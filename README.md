@@ -19,7 +19,7 @@ sequenceDiagram
     participant App as Application
     participant Backend as CloudTasksBackend
     participant CT as Cloud Tasks
-    participant Handler as /tasks/execute/
+    participant Handler as /cloudtasks/execute/
 
     Note over App,Handler: Task Enqueue
     App->>Backend: task.enqueue(args, kwargs)
@@ -29,7 +29,7 @@ sequenceDiagram
     Backend-->>App: TaskResult (id, status=NEW)
 
     Note over App,Handler: Task Execution (triggered by Cloud Tasks)
-    CT->>Handler: POST /tasks/execute/<br/>(with OIDC token if configured)
+    CT->>Handler: POST /cloudtasks/execute/<br/>(with OIDC token if configured)
     Handler->>Handler: Verify OIDC token (optional)
     Handler->>Handler: Deserialize task data
     Handler->>Handler: Execute task function
@@ -91,9 +91,9 @@ TASKS = {
         'BACKEND': 'django_tasks_cloud_tasks.CloudTasksBackend',
         'QUEUES': [],
         'OPTIONS': {
-            'PROJECT_ID': 'your-project-id',
-            'LOCATION': 'asia-northeast1',
-            'SERVICE_URL': 'http://localhost:8000',
+            'CLOUD_TASKS_PROJECT': 'your-project-id',
+            'CLOUD_TASKS_LOCATION': 'asia-northeast1',
+            'TASK_HANDLER_HOST': 'http://localhost:8000',
         },
     },
 }
@@ -106,7 +106,7 @@ TASKS = {
 from django.urls import path, include
 
 urlpatterns = [
-    path('tasks/', include('django_tasks_cloud_tasks.urls')),
+    path('cloudtasks/', include('django_tasks_cloud_tasks.urls')),
 ]
 ```
 
@@ -222,9 +222,10 @@ TASKS = {
         'QUEUES': [],  # Empty list allows all queue names
         'OPTIONS': {
             # Auto-detected on Cloud Run / App Engine, or set explicitly
-            'PROJECT_ID': 'your-project-id',
-            'LOCATION': 'asia-northeast1',
-            'SERVICE_URL': 'https://your-app.run.app',
+            'CLOUD_TASKS_PROJECT': 'your-project-id',
+            'CLOUD_TASKS_LOCATION': 'asia-northeast1',
+            'TASK_HANDLER_HOST': 'https://your-app.run.app',
+            'TASK_HANDLER_PATH': '/cloudtasks/execute/',  # default
 
             # Optional: OIDC authentication
             'OIDC_SERVICE_ACCOUNT_EMAIL': 'cloud-tasks-invoker@your-project.iam.gserviceaccount.com',
@@ -238,11 +239,12 @@ TASKS = {
 
 | Option | Required | Description |
 |--------|----------|-------------|
-| `PROJECT_ID` | Auto-detected | GCP project ID |
-| `LOCATION` | Auto-detected | Cloud Tasks location (e.g., `asia-northeast1`) |
-| `SERVICE_URL` | Auto-detected | Base URL for task execution endpoint |
+| `CLOUD_TASKS_PROJECT` | Auto-detected | GCP project ID |
+| `CLOUD_TASKS_LOCATION` | Auto-detected | Cloud Tasks location (e.g., `asia-northeast1`) |
+| `TASK_HANDLER_HOST` | Auto-detected | Base URL for task execution endpoint |
+| `TASK_HANDLER_PATH` | No | Task execution endpoint path (default: `/cloudtasks/execute/`) |
 | `OIDC_SERVICE_ACCOUNT_EMAIL` | No | Service account email for OIDC token |
-| `OIDC_AUDIENCE` | No | OIDC audience (defaults to SERVICE_URL) |
+| `OIDC_AUDIENCE` | No | OIDC audience (defaults to TASK_HANDLER_HOST) |
 
 ### Auto-Detection
 
@@ -250,9 +252,9 @@ Settings are automatically detected from environment variables or GCP metadata:
 
 | Setting | Detection Source |
 |---------|------------------|
-| `PROJECT_ID` | `GOOGLE_CLOUD_PROJECT` env var, or metadata server |
-| `LOCATION` | `CLOUD_TASKS_LOCATION`, `CLOUD_RUN_REGION` env var, or metadata server |
-| `SERVICE_URL` | `SERVICE_URL` env var, or built from `K_SERVICE` (Cloud Run) / `GAE_SERVICE` (App Engine) |
+| `CLOUD_TASKS_PROJECT` | `GOOGLE_CLOUD_PROJECT` env var, or metadata server |
+| `CLOUD_TASKS_LOCATION` | `CLOUD_TASKS_LOCATION`, `CLOUD_RUN_REGION` env var, or metadata server |
+| `TASK_HANDLER_HOST` | `SERVICE_URL` env var, or built from `K_SERVICE` (Cloud Run) / `GAE_SERVICE` (App Engine) |
 
 ### Environment Variables
 
@@ -267,7 +269,7 @@ For local development:
 
 ## HTTP Endpoint
 
-### POST `/tasks/execute/`
+### POST `/cloudtasks/execute/`
 
 Task execution endpoint called by Cloud Tasks.
 
@@ -329,7 +331,7 @@ When deploying to production, enable OIDC authentication to secure the task exec
            'BACKEND': 'django_tasks_cloud_tasks.CloudTasksBackend',
            'QUEUES': [],  # Empty list allows all queue names
            'OPTIONS': {
-               # PROJECT_ID, LOCATION, SERVICE_URL are auto-detected on Cloud Run
+               # CLOUD_TASKS_PROJECT, CLOUD_TASKS_LOCATION, TASK_HANDLER_HOST are auto-detected on Cloud Run
                'OIDC_SERVICE_ACCOUNT_EMAIL': 'cloud-tasks-invoker@PROJECT_ID.iam.gserviceaccount.com',
            },
        },
@@ -350,7 +352,7 @@ export SERVICE_URL="http://localhost:8000"
 python manage.py runserver
 
 # Simulate task execution
-curl -X POST http://localhost:8000/tasks/execute/ \
+curl -X POST http://localhost:8000/cloudtasks/execute/ \
   -H "Content-Type: application/json" \
   -d '{
     "task_id": "test-task-001",

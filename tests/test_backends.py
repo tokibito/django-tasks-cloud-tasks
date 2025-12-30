@@ -28,7 +28,7 @@ class TestCloudTasksBackendInit:
                     ):
                         with pytest.raises(ImproperlyConfigured) as exc_info:
                             CloudTasksBackend("default", {"OPTIONS": {}})
-                        assert "PROJECT_ID is required" in str(exc_info.value)
+                        assert "CLOUD_TASKS_PROJECT is required" in str(exc_info.value)
 
     def test_raises_error_when_location_not_configured(self):
         from django_tasks_cloud_tasks.backends import CloudTasksBackend
@@ -51,7 +51,7 @@ class TestCloudTasksBackendInit:
                     ):
                         with pytest.raises(ImproperlyConfigured) as exc_info:
                             CloudTasksBackend("default", {"OPTIONS": {}})
-                        assert "LOCATION is required" in str(exc_info.value)
+                        assert "CLOUD_TASKS_LOCATION is required" in str(exc_info.value)
 
     def test_raises_error_when_service_url_not_configured(self):
         from django_tasks_cloud_tasks.backends import CloudTasksBackend
@@ -74,7 +74,7 @@ class TestCloudTasksBackendInit:
                     ):
                         with pytest.raises(ImproperlyConfigured) as exc_info:
                             CloudTasksBackend("default", {"OPTIONS": {}})
-                        assert "SERVICE_URL is required" in str(exc_info.value)
+                        assert "TASK_HANDLER_HOST is required" in str(exc_info.value)
 
     def test_initializes_with_valid_options(self):
         from django_tasks_cloud_tasks.backends import CloudTasksBackend
@@ -88,16 +88,16 @@ class TestCloudTasksBackendInit:
                 {
                     "QUEUES": ["default"],
                     "OPTIONS": {
-                        "PROJECT_ID": "my-project",
-                        "LOCATION": "asia-northeast1",
-                        "SERVICE_URL": "https://my-app.run.app",
+                        "CLOUD_TASKS_PROJECT": "my-project",
+                        "CLOUD_TASKS_LOCATION": "asia-northeast1",
+                        "TASK_HANDLER_HOST": "https://my-app.run.app",
                     },
                 },
             )
 
             assert backend.project_id == "my-project"
             assert backend.location == "asia-northeast1"
-            assert backend.service_url == "https://my-app.run.app"
+            assert backend.task_handler_host == "https://my-app.run.app"
             assert backend.supports_defer is True
             assert backend.supports_async_task is True
             assert backend.supports_get_result is False
@@ -112,9 +112,9 @@ class TestCloudTasksBackendEnqueue:
                 "BACKEND": "django_tasks_cloud_tasks.CloudTasksBackend",
                 "QUEUES": ["default"],
                 "OPTIONS": {
-                    "PROJECT_ID": "test-project",
-                    "LOCATION": "us-central1",
-                    "SERVICE_URL": "https://test.example.com",
+                    "CLOUD_TASKS_PROJECT": "test-project",
+                    "CLOUD_TASKS_LOCATION": "us-central1",
+                    "TASK_HANDLER_HOST": "https://test.example.com",
                 },
             },
         }
@@ -141,9 +141,9 @@ class TestCloudTasksBackendEnqueue:
                 "BACKEND": "django_tasks_cloud_tasks.CloudTasksBackend",
                 "QUEUES": ["default"],
                 "OPTIONS": {
-                    "PROJECT_ID": "test-project",
-                    "LOCATION": "us-central1",
-                    "SERVICE_URL": "https://test.example.com",
+                    "CLOUD_TASKS_PROJECT": "test-project",
+                    "CLOUD_TASKS_LOCATION": "us-central1",
+                    "TASK_HANDLER_HOST": "https://test.example.com",
                 },
             },
         }

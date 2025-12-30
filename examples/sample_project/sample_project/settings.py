@@ -120,11 +120,13 @@ TASKS = {
         "QUEUES": ["default", "high-priority"],
         "OPTIONS": {
             # GCP project ID
-            "PROJECT_ID": os.environ.get("GOOGLE_CLOUD_PROJECT", "your-project-id"),
+            "CLOUD_TASKS_PROJECT": os.environ.get("GOOGLE_CLOUD_PROJECT", "your-project-id"),
             # Cloud Tasks location
-            "LOCATION": os.environ.get("CLOUD_TASKS_LOCATION", "asia-northeast1"),
+            "CLOUD_TASKS_LOCATION": os.environ.get("CLOUD_TASKS_LOCATION", "asia-northeast1"),
             # Task execution endpoint base URL
-            "SERVICE_URL": os.environ.get("SERVICE_URL", "http://localhost:8000"),
+            "TASK_HANDLER_HOST": os.environ.get("SERVICE_URL", "http://localhost:8000"),
+            # Task execution endpoint path (default: /cloudtasks/execute/)
+            # "TASK_HANDLER_PATH": "/cloudtasks/execute/",
             # OIDC authentication settings (configure for production)
             # "OIDC_SERVICE_ACCOUNT_EMAIL": "your-sa@your-project.iam.gserviceaccount.com",
             # "OIDC_AUDIENCE": "https://your-app.run.app",
