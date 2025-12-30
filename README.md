@@ -72,17 +72,28 @@ INSTALLED_APPS = [
 
 ### 2. Configure the task backend
 
-```python
-import os
+On Cloud Run / App Engine, settings are auto-detected. Minimal configuration:
 
+```python
 TASKS = {
     'default': {
         'BACKEND': 'django_tasks_cloud_tasks.CloudTasksBackend',
-        'QUEUES': ['default', 'high-priority'],
+        'QUEUES': [],  # Empty list allows all queue names
+    },
+}
+```
+
+For local development, set environment variables (`GOOGLE_CLOUD_PROJECT`, `CLOUD_TASKS_LOCATION`, `SERVICE_URL`) or configure explicitly:
+
+```python
+TASKS = {
+    'default': {
+        'BACKEND': 'django_tasks_cloud_tasks.CloudTasksBackend',
+        'QUEUES': [],
         'OPTIONS': {
-            'PROJECT_ID': os.environ.get('GOOGLE_CLOUD_PROJECT'),
-            'LOCATION': os.environ.get('CLOUD_TASKS_LOCATION', 'asia-northeast1'),
-            'SERVICE_URL': os.environ.get('SERVICE_URL', 'http://localhost:8000'),
+            'PROJECT_ID': 'your-project-id',
+            'LOCATION': 'asia-northeast1',
+            'SERVICE_URL': 'http://localhost:8000',
         },
     },
 }
@@ -208,9 +219,9 @@ def urgent_notification():
 TASKS = {
     'default': {
         'BACKEND': 'django_tasks_cloud_tasks.CloudTasksBackend',
-        'QUEUES': ['default', 'high-priority'],
+        'QUEUES': [],  # Empty list allows all queue names
         'OPTIONS': {
-            # Required settings
+            # Auto-detected on Cloud Run / App Engine, or set explicitly
             'PROJECT_ID': 'your-project-id',
             'LOCATION': 'asia-northeast1',
             'SERVICE_URL': 'https://your-app.run.app',
@@ -227,15 +238,25 @@ TASKS = {
 
 | Option | Required | Description |
 |--------|----------|-------------|
-| `PROJECT_ID` | Yes | GCP project ID |
-| `LOCATION` | Yes | Cloud Tasks location (e.g., `asia-northeast1`) |
-| `SERVICE_URL` | Yes | Base URL for task execution endpoint |
+| `PROJECT_ID` | Auto-detected | GCP project ID |
+| `LOCATION` | Auto-detected | Cloud Tasks location (e.g., `asia-northeast1`) |
+| `SERVICE_URL` | Auto-detected | Base URL for task execution endpoint |
 | `OIDC_SERVICE_ACCOUNT_EMAIL` | No | Service account email for OIDC token |
 | `OIDC_AUDIENCE` | No | OIDC audience (defaults to SERVICE_URL) |
 
+### Auto-Detection
+
+Settings are automatically detected from environment variables or GCP metadata:
+
+| Setting | Detection Source |
+|---------|------------------|
+| `PROJECT_ID` | `GOOGLE_CLOUD_PROJECT` env var, or metadata server |
+| `LOCATION` | `CLOUD_TASKS_LOCATION`, `CLOUD_RUN_REGION` env var, or metadata server |
+| `SERVICE_URL` | `SERVICE_URL` env var, or built from `K_SERVICE` (Cloud Run) / `GAE_SERVICE` (App Engine) |
+
 ### Environment Variables
 
-For convenience, you can use environment variables:
+For local development:
 
 | Environment Variable | Description |
 |---------------------|-------------|
@@ -306,10 +327,9 @@ When deploying to production, enable OIDC authentication to secure the task exec
    TASKS = {
        'default': {
            'BACKEND': 'django_tasks_cloud_tasks.CloudTasksBackend',
+           'QUEUES': [],  # Empty list allows all queue names
            'OPTIONS': {
-               'PROJECT_ID': 'your-project-id',
-               'LOCATION': 'asia-northeast1',
-               'SERVICE_URL': 'https://your-app.run.app',
+               # PROJECT_ID, LOCATION, SERVICE_URL are auto-detected on Cloud Run
                'OIDC_SERVICE_ACCOUNT_EMAIL': 'cloud-tasks-invoker@PROJECT_ID.iam.gserviceaccount.com',
            },
        },
@@ -395,12 +415,9 @@ gcloud tasks queues create default --location asia-northeast1
 gcloud tasks queues create high-priority --location asia-northeast1
 ```
 
-### 3. Configure environment variables
+### 3. Configuration
 
-Set the following in Cloud Run:
-- `GOOGLE_CLOUD_PROJECT`: Auto-detected
-- `CLOUD_TASKS_LOCATION`: Auto-detected from region
-- `SERVICE_URL`: Cloud Run URL
+All settings are auto-detected on Cloud Run. No additional configuration needed for basic usage.
 
 ## Example Project
 

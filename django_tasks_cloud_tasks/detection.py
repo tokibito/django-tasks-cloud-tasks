@@ -83,9 +83,18 @@ def detect_task_handler_host():
     """
     Detect task handler host URL.
 
-    Generate appropriate URL based on Cloud Run or App Engine environment.
+    Priority:
+    1. SERVICE_URL environment variable (explicit)
+    2. Cloud Run: Generate URL from K_SERVICE
+    3. App Engine: Generate URL from GAE_VERSION
+
     Supports Blue/Green deployment.
     """
+    # Explicit environment variable
+    service_url = os.environ.get("SERVICE_URL")
+    if service_url:
+        return service_url
+
     if is_cloud_run():
         service = os.environ.get("K_SERVICE")
         revision = os.environ.get("K_REVISION")
