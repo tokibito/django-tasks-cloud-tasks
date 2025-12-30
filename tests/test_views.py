@@ -1,9 +1,9 @@
 """Tests for views.py"""
 
 import json
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
+import pytest
 from django.test import RequestFactory, override_settings
 
 

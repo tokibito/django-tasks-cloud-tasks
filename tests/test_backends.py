@@ -1,8 +1,8 @@
 """Tests for backends.py"""
 
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
 
+import pytest
 from django.core.exceptions import ImproperlyConfigured
 from django.test import override_settings
 
@@ -122,6 +122,7 @@ class TestCloudTasksBackendEnqueue:
     @patch("google.cloud.tasks_v2.CloudTasksClient")
     def test_enqueue_task(self, mock_client_class):
         from django.tasks.base import TaskResultStatus
+
         from tests.tasks import add_numbers
 
         mock_client = MagicMock()
@@ -150,6 +151,7 @@ class TestCloudTasksBackendEnqueue:
     @patch("google.cloud.tasks_v2.CloudTasksClient")
     def test_enqueue_task_with_kwargs(self, mock_client_class):
         from django.tasks.base import TaskResultStatus
+
         from tests.tasks import message_task
 
         mock_client = MagicMock()

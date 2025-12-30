@@ -9,12 +9,12 @@ __version__ = "0.1.0"
 
 # Detection utilities are always available (no external dependencies)
 from .detection import (
-    detect_gcp_project,
-    detect_gcp_location,
-    detect_task_handler_host,
     detect_default_service_account,
-    is_cloud_run,
+    detect_gcp_location,
+    detect_gcp_project,
+    detect_task_handler_host,
     is_app_engine,
+    is_cloud_run,
 )
 
 __all__ = [

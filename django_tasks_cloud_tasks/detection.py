@@ -1,8 +1,8 @@
 """Auto-detection for GCP environments (App Engine, Cloud Run)."""
 
 import os
-import urllib.request
 import urllib.error
+import urllib.request
 
 METADATA_SERVER = "http://metadata.google.internal"
 METADATA_HEADERS = {"Metadata-Flavor": "Google"}

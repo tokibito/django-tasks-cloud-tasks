@@ -3,11 +3,10 @@
 import logging
 from traceback import format_exception
 
-from django.utils import timezone
-from django.utils.module_loading import import_string
-
 from django.tasks.base import TaskContext, TaskError, TaskResult, TaskResultStatus
 from django.tasks.signals import task_finished, task_started
+from django.utils import timezone
+from django.utils.module_loading import import_string
 
 # Logger with naming convention similar to django-database-task
 # Allows distinguishing log sources when using multiple backends
@@ -31,9 +30,10 @@ def execute_task_from_payload(payload, worker_id):
     task_path = payload["task_path"]
     args = payload["args"]
     kwargs = payload["kwargs"]
-    queue_name = payload["queue_name"]
+    # queue_name and priority are stored in payload for potential future use
+    _ = payload["queue_name"]  # noqa: F841
     backend_alias = payload["backend"]
-    priority = payload.get("priority", 0)
+    _ = payload.get("priority", 0)  # noqa: F841
     takes_context = payload.get("takes_context", False)
     enqueued_at_str = payload.get("enqueued_at")
 
@@ -71,7 +71,9 @@ def execute_task_from_payload(payload, worker_id):
     try:
         # Execute task
         if takes_context:
-            result = task_func.call(TaskContext(task_result=task_result), *args, **kwargs)
+            result = task_func.call(
+                TaskContext(task_result=task_result), *args, **kwargs
+            )
         else:
             result = task_func.call(*args, **kwargs)
 

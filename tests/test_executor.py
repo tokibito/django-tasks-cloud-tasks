@@ -1,8 +1,8 @@
 """Tests for executor.py"""
 
-import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 
+import pytest
 from django.test import override_settings
 
 
@@ -24,6 +24,7 @@ class TestExecuteTaskFromPayload:
     @patch("google.cloud.tasks_v2.CloudTasksClient")
     def test_execute_task_successfully(self, mock_client_class):
         from django.tasks.base import TaskResultStatus
+
         from django_tasks_cloud_tasks.executor import execute_task_from_payload
         from tests.tasks import add_numbers
 
@@ -62,6 +63,7 @@ class TestExecuteTaskFromPayload:
     @patch("google.cloud.tasks_v2.CloudTasksClient")
     def test_execute_task_with_failure(self, mock_client_class):
         from django.tasks.base import TaskResultStatus
+
         from django_tasks_cloud_tasks.executor import execute_task_from_payload
         from tests.tasks import failing_task
 
@@ -100,6 +102,7 @@ class TestExecuteTaskFromPayload:
     @patch("google.cloud.tasks_v2.CloudTasksClient")
     def test_execute_task_with_context(self, mock_client_class):
         from django.tasks.base import TaskResultStatus
+
         from django_tasks_cloud_tasks.executor import execute_task_from_payload
         from tests.tasks import task_with_context
 

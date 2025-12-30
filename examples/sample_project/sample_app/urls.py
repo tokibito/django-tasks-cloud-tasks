@@ -3,13 +3,13 @@
 from django.urls import path
 
 from .views import (
-    IndexView,
     EnqueueAddView,
+    EnqueueContextView,
+    EnqueueFailingView,
     EnqueueNotifyView,
     EnqueueProcessView,
     EnqueueUrgentView,
-    EnqueueContextView,
-    EnqueueFailingView,
+    IndexView,
 )
 
 urlpatterns = [

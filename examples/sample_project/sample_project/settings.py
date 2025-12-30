@@ -124,9 +124,7 @@ TASKS = {
             # Cloud Tasks location
             "LOCATION": os.environ.get("CLOUD_TASKS_LOCATION", "asia-northeast1"),
             # Task execution endpoint base URL
-            "SERVICE_URL": os.environ.get(
-                "SERVICE_URL", "http://localhost:8000"
-            ),
+            "SERVICE_URL": os.environ.get("SERVICE_URL", "http://localhost:8000"),
             # OIDC authentication settings (configure for production)
             # "OIDC_SERVICE_ACCOUNT_EMAIL": "your-sa@your-project.iam.gserviceaccount.com",
             # "OIDC_AUDIENCE": "https://your-app.run.app",

@@ -6,18 +6,18 @@ Views for enqueueing tasks with HTML templates.
 
 import json
 
-from django.shortcuts import render, redirect
+from django.shortcuts import render
+from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
 
 from .tasks import (
     add_numbers,
-    send_notification,
-    process_data,
-    urgent_task,
-    task_with_context,
     failing_task,
+    process_data,
+    send_notification,
+    task_with_context,
+    urgent_task,
 )
 
 

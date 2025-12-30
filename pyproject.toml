@@ -1,15 +1,27 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "django-tasks-cloud-tasks"
 version = "0.1.0"
 description = "A Google Cloud Tasks backend for Django 6.0's built-in task framework"
-license = {text = "MIT"}
-authors = [{name = "Shinya Okano"}]
 readme = "README.md"
-requires-python = ">=3.12"
-dependencies = [
-    "Django>=6.0",
-    "google-cloud-tasks>=2.0.0",
-    "google-auth>=2.0.0",
+license = "MIT"
+authors = [
+    {name = "Shinya Okano", email = "tokibito@gmail.com"}
+]
+maintainers = [
+    {name = "Shinya Okano", email = "tokibito@gmail.com"}
+]
+keywords = [
+    "django",
+    "tasks",
+    "cloud-tasks",
+    "google-cloud",
+    "async",
+    "queue",
+    "background",
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -19,39 +31,60 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
+    "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Topic :: Software Development :: Libraries :: Python Modules",
 ]
-keywords = ["django", "tasks", "cloud-tasks", "google-cloud", "async"]
+requires-python = ">=3.12"
+dependencies = [
+    "Django>=6.0",
+    "google-cloud-tasks>=2.0.0",
+    "google-auth>=2.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-django>=4.5",
+    "ruff>=0.8",
+]
 
 [project.urls]
 Homepage = "https://github.com/tokibito/django-tasks-cloud-tasks"
 Repository = "https://github.com/tokibito/django-tasks-cloud-tasks"
-
-[project.optional-dependencies]
-dev = [
-    "pytest",
-    "pytest-django",
-    "ruff",
-]
-
-[build-system]
-requires = ["setuptools>=61"]
-build-backend = "setuptools.build_meta"
+Issues = "https://github.com/tokibito/django-tasks-cloud-tasks/issues"
 
 [tool.setuptools.packages.find]
 include = ["django_tasks_cloud_tasks*"]
+exclude = ["tests*", "examples*"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "tests.settings"
-python_files = ["test_*.py"]
 pythonpath = ["."]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v"
 
 [tool.ruff]
 target-version = "py312"
 line-length = 88
 
 [tool.ruff.lint]
-select = ["E", "W", "I", "B"]
-ignore = ["E501"]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # Pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["django_tasks_cloud_tasks"]

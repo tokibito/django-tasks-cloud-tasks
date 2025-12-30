@@ -26,10 +26,10 @@ class CloudTasksBackend(BaseTaskBackend):
         super().__init__(alias, params)
 
         from .detection import (
-            detect_gcp_project,
-            detect_gcp_location,
-            detect_task_handler_host,
             detect_default_service_account,
+            detect_gcp_location,
+            detect_gcp_project,
+            detect_task_handler_host,
         )
 
         # Get from options, or auto-detect
@@ -38,9 +38,10 @@ class CloudTasksBackend(BaseTaskBackend):
         self.service_url = self.options.get("SERVICE_URL") or detect_task_handler_host()
 
         # OIDC configuration
-        self.oidc_service_account_email = self.options.get(
-            "OIDC_SERVICE_ACCOUNT_EMAIL"
-        ) or detect_default_service_account()
+        self.oidc_service_account_email = (
+            self.options.get("OIDC_SERVICE_ACCOUNT_EMAIL")
+            or detect_default_service_account()
+        )
         self.oidc_audience = self.options.get("OIDC_AUDIENCE") or self.service_url
 
         # Validate required settings

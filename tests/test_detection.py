@@ -1,6 +1,5 @@
 """Tests for detection.py"""
 
-import pytest
 from unittest.mock import patch
 
 
@@ -51,7 +50,6 @@ class TestDetectGcpProject:
 
     def test_returns_none_when_not_detected(self):
         from django_tasks_cloud_tasks import detect_gcp_project
-        from django_tasks_cloud_tasks.detection import _get_metadata
 
         with patch.dict("os.environ", {}, clear=True):
             with patch(
