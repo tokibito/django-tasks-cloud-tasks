@@ -72,7 +72,7 @@ pip install django-tasks-cloud-tasks google-cloud-tasks google-auth
 ```python
 INSTALLED_APPS = [
     # ...
-    'django_tasks_cloud_tasks',
+    "django_tasks_cloud_tasks",
 ]
 ```
 
@@ -82,9 +82,9 @@ INSTALLED_APPS = [
 
 ```python
 TASKS = {
-    'default': {
-        'BACKEND': 'django_tasks_cloud_tasks.CloudTasksBackend',
-        'QUEUES': [],  # Empty list allows all queue names
+    "default": {
+        "BACKEND": "django_tasks_cloud_tasks.CloudTasksBackend",
+        "QUEUES": [],  # Empty list allows all queue names
     },
 }
 ```
@@ -118,9 +118,9 @@ With these environment variables set, the same minimal configuration works:
 
 ```python
 TASKS = {
-    'default': {
-        'BACKEND': 'django_tasks_cloud_tasks.CloudTasksBackend',
-        'QUEUES': [],
+    "default": {
+        "BACKEND": "django_tasks_cloud_tasks.CloudTasksBackend",
+        "QUEUES": [],
     },
 }
 ```
@@ -129,13 +129,13 @@ Or configure explicitly in settings:
 
 ```python
 TASKS = {
-    'default': {
-        'BACKEND': 'django_tasks_cloud_tasks.CloudTasksBackend',
-        'QUEUES': [],
-        'OPTIONS': {
-            'CLOUD_TASKS_PROJECT': 'your-project-id',
-            'CLOUD_TASKS_LOCATION': 'asia-northeast1',
-            'TASK_HANDLER_HOST': 'http://localhost:8000',
+    "default": {
+        "BACKEND": "django_tasks_cloud_tasks.CloudTasksBackend",
+        "QUEUES": [],
+        "OPTIONS": {
+            "CLOUD_TASKS_PROJECT": "your-project-id",
+            "CLOUD_TASKS_LOCATION": "asia-northeast1",
+            "TASK_HANDLER_HOST": "http://localhost:8000",
         },
     },
 }
@@ -148,7 +148,7 @@ TASKS = {
 from django.urls import path, include
 
 urlpatterns = [
-    path('cloudtasks/', include('django_tasks_cloud_tasks.urls')),
+    path("cloudtasks/", include("django_tasks_cloud_tasks.urls")),
 ]
 ```
 
@@ -156,6 +156,7 @@ urlpatterns = [
 
 ```python
 from django.tasks import task
+
 
 @task
 def send_welcome_email(user_id):
@@ -197,17 +198,23 @@ Supported types:
 ```python
 from django.tasks import task
 
+
 # ❌ This will raise TypeError
 @task
 def bad_task(user_id, created_at):
     pass
+
+
 bad_task.enqueue(123, datetime.now())  # TypeError!
+
 
 # ✅ Convert to JSON-serializable types
 @task
 def good_task(user_id, created_at_iso):
     created_at = datetime.fromisoformat(created_at_iso)
     # ...
+
+
 good_task.enqueue(123, datetime.now().isoformat())  # OK
 ```
 
@@ -217,6 +224,7 @@ good_task.enqueue(123, datetime.now().isoformat())  # OK
 @task(priority=10)  # Higher priority
 def urgent_task():
     pass
+
 
 @task(priority=-10)  # Lower priority
 def background_task():
@@ -251,6 +259,7 @@ def task_with_context(context, message):
 def urgent_notification():
     pass
 
+
 # Create the queue in Cloud Tasks
 # gcloud tasks queues create high-priority --location=asia-northeast1
 ```
@@ -259,19 +268,18 @@ def urgent_notification():
 
 ```python
 TASKS = {
-    'default': {
-        'BACKEND': 'django_tasks_cloud_tasks.CloudTasksBackend',
-        'QUEUES': [],  # Empty list allows all queue names
-        'OPTIONS': {
+    "default": {
+        "BACKEND": "django_tasks_cloud_tasks.CloudTasksBackend",
+        "QUEUES": [],  # Empty list allows all queue names
+        "OPTIONS": {
             # Auto-detected on Cloud Run / App Engine, or set explicitly
-            'CLOUD_TASKS_PROJECT': 'your-project-id',
-            'CLOUD_TASKS_LOCATION': 'asia-northeast1',
-            'TASK_HANDLER_HOST': 'https://your-app.run.app',
-            'TASK_HANDLER_PATH': '/cloudtasks/execute/',  # default
-
+            "CLOUD_TASKS_PROJECT": "your-project-id",
+            "CLOUD_TASKS_LOCATION": "asia-northeast1",
+            "TASK_HANDLER_HOST": "https://your-app.run.app",
+            "TASK_HANDLER_PATH": "/cloudtasks/execute/",  # default
             # Optional: OIDC authentication
-            'OIDC_SERVICE_ACCOUNT_EMAIL': 'cloud-tasks-invoker@your-project.iam.gserviceaccount.com',
-            'OIDC_AUDIENCE': 'https://your-app.run.app',
+            "OIDC_SERVICE_ACCOUNT_EMAIL": "cloud-tasks-invoker@your-project.iam.gserviceaccount.com",
+            "OIDC_AUDIENCE": "https://your-app.run.app",
         },
     },
 }
@@ -369,12 +377,12 @@ When deploying to production, enable OIDC authentication to secure the task exec
 3. Configure the backend:
    ```python
    TASKS = {
-       'default': {
-           'BACKEND': 'django_tasks_cloud_tasks.CloudTasksBackend',
-           'QUEUES': [],  # Empty list allows all queue names
-           'OPTIONS': {
+       "default": {
+           "BACKEND": "django_tasks_cloud_tasks.CloudTasksBackend",
+           "QUEUES": [],  # Empty list allows all queue names
+           "OPTIONS": {
                # CLOUD_TASKS_PROJECT, CLOUD_TASKS_LOCATION, TASK_HANDLER_HOST are auto-detected on Cloud Run
-               'OIDC_SERVICE_ACCOUNT_EMAIL': 'cloud-tasks-invoker@PROJECT_ID.iam.gserviceaccount.com',
+               "OIDC_SERVICE_ACCOUNT_EMAIL": "cloud-tasks-invoker@PROJECT_ID.iam.gserviceaccount.com",
            },
        },
    }
