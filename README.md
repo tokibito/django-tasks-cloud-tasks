@@ -3,7 +3,7 @@
 [![CI](https://github.com/tokibito/django-tasks-cloud-tasks/actions/workflows/ci.yml/badge.svg)](https://github.com/tokibito/django-tasks-cloud-tasks/actions/workflows/ci.yml)
 [![PyPI version](https://badge.fury.io/py/django-tasks-cloud-tasks.svg)](https://badge.fury.io/py/django-tasks-cloud-tasks)
 [![Python Versions](https://img.shields.io/pypi/pyversions/django-tasks-cloud-tasks.svg)](https://pypi.org/project/django-tasks-cloud-tasks/)
-[![Django Versions](https://img.shields.io/badge/django-6.0-blue.svg)](https://www.djangoproject.com/)
+[![Django Versions](https://img.shields.io/badge/django-6.0%20%7C%206.1-blue.svg)](https://www.djangoproject.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A Google Cloud Tasks backend for Django 6.0's built-in task framework.
