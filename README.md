@@ -475,6 +475,11 @@ All settings are auto-detected on Cloud Run. No additional configuration needed 
 
 See the [examples/](examples/) directory for a complete sample project with a web UI for testing task enqueueing.
 
+## Contributing
+
+Issues and pull requests are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md)
+for how to set up a development environment and what a pull request needs.
+
 ## License
 
 MIT License
