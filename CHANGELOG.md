@@ -7,6 +7,12 @@
 - Django 6.1 is supported and tested alongside Django 6.0, on Python 3.12
   to 3.14. ([#1](https://github.com/tokibito/django-tasks-cloud-tasks/pull/1))
 
+### Fixed
+
+- The source distribution carries the whole test suite. It had the test
+  modules but not `tests/settings.py` and `tests/tasks.py`, so the tests in
+  it could not run.
+
 ### Documentation
 
 - `CONTRIBUTING.md`, covering the development setup, running the tests and

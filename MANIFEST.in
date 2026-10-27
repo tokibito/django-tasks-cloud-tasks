@@ -1,3 +1,7 @@
 include LICENSE
 include README.md
 include CHANGELOG.md
+# The whole test suite, so the tests in the sdist can run: setuptools picks
+# up tests/test_*.py on its own but not the settings and tasks they import.
+recursive-include tests *.py
+global-exclude *.py[cod]
