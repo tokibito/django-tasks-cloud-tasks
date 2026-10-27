@@ -64,6 +64,9 @@ exclude = ["tests*", "examples*"]
 
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "tests.settings"
+# Without this a bare `pytest` also collects any Django checkout kept
+# beside the project for reference, which fails before a test can run.
+testpaths = ["tests"]
 pythonpath = ["."]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
@@ -71,8 +74,13 @@ python_functions = ["test_*"]
 addopts = "-v"
 
 [tool.ruff]
-target-version = "py312"
+# target-version is left unset on purpose: ruff infers it from
+# project.requires-python, so the oldest supported Python is stated once.
 line-length = 88
+# Ruff formats Python code blocks inside Markdown. The documentation
+# snippets are deliberately compact (no PEP 8 blank-line padding around
+# decorated examples), so keep the docs out of scope.
+extend-exclude = ["*.md"]
 
 [tool.ruff.lint]
 select = [
