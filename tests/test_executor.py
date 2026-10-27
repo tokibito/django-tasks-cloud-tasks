@@ -1,7 +1,5 @@
 """Tests for executor.py"""
 
-from unittest.mock import patch
-
 import pytest
 from django.test import override_settings
 
@@ -14,15 +12,14 @@ class TestExecuteTaskFromPayload:
                 "BACKEND": "django_tasks_cloud_tasks.CloudTasksBackend",
                 "QUEUES": ["default"],
                 "OPTIONS": {
-                    "PROJECT_ID": "test-project",
-                    "LOCATION": "us-central1",
-                    "SERVICE_URL": "https://test.example.com",
+                    "CLOUD_TASKS_PROJECT": "test-project",
+                    "CLOUD_TASKS_LOCATION": "us-central1",
+                    "TASK_HANDLER_HOST": "https://test.example.com",
                 },
             },
         }
     )
-    @patch("google.cloud.tasks_v2.CloudTasksClient")
-    def test_execute_task_successfully(self, mock_client_class):
+    def test_execute_task_successfully(self):
         from django.tasks.base import TaskResultStatus
 
         from django_tasks_cloud_tasks.executor import execute_task_from_payload
@@ -53,15 +50,14 @@ class TestExecuteTaskFromPayload:
                 "BACKEND": "django_tasks_cloud_tasks.CloudTasksBackend",
                 "QUEUES": ["default"],
                 "OPTIONS": {
-                    "PROJECT_ID": "test-project",
-                    "LOCATION": "us-central1",
-                    "SERVICE_URL": "https://test.example.com",
+                    "CLOUD_TASKS_PROJECT": "test-project",
+                    "CLOUD_TASKS_LOCATION": "us-central1",
+                    "TASK_HANDLER_HOST": "https://test.example.com",
                 },
             },
         }
     )
-    @patch("google.cloud.tasks_v2.CloudTasksClient")
-    def test_execute_task_with_failure(self, mock_client_class):
+    def test_execute_task_with_failure(self):
         from django.tasks.base import TaskResultStatus
 
         from django_tasks_cloud_tasks.executor import execute_task_from_payload
@@ -92,15 +88,14 @@ class TestExecuteTaskFromPayload:
                 "BACKEND": "django_tasks_cloud_tasks.CloudTasksBackend",
                 "QUEUES": ["default"],
                 "OPTIONS": {
-                    "PROJECT_ID": "test-project",
-                    "LOCATION": "us-central1",
-                    "SERVICE_URL": "https://test.example.com",
+                    "CLOUD_TASKS_PROJECT": "test-project",
+                    "CLOUD_TASKS_LOCATION": "us-central1",
+                    "TASK_HANDLER_HOST": "https://test.example.com",
                 },
             },
         }
     )
-    @patch("google.cloud.tasks_v2.CloudTasksClient")
-    def test_execute_task_with_context(self, mock_client_class):
+    def test_execute_task_with_context(self):
         from django.tasks.base import TaskResultStatus
 
         from django_tasks_cloud_tasks.executor import execute_task_from_payload

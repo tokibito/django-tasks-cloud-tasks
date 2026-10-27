@@ -15,15 +15,14 @@ class TestExecuteTaskView:
                 "BACKEND": "django_tasks_cloud_tasks.CloudTasksBackend",
                 "QUEUES": ["default"],
                 "OPTIONS": {
-                    "PROJECT_ID": "test-project",
-                    "LOCATION": "us-central1",
-                    "SERVICE_URL": "https://test.example.com",
+                    "CLOUD_TASKS_PROJECT": "test-project",
+                    "CLOUD_TASKS_LOCATION": "us-central1",
+                    "TASK_HANDLER_HOST": "https://test.example.com",
                 },
             },
         }
     )
-    @patch("google.cloud.tasks_v2.CloudTasksClient")
-    def test_execute_task_success(self, mock_client_class):
+    def test_execute_task_success(self):
         from django_tasks_cloud_tasks.views import ExecuteTaskView
         from tests.tasks import simple_task
 
@@ -60,15 +59,14 @@ class TestExecuteTaskView:
                 "BACKEND": "django_tasks_cloud_tasks.CloudTasksBackend",
                 "QUEUES": ["default"],
                 "OPTIONS": {
-                    "PROJECT_ID": "test-project",
-                    "LOCATION": "us-central1",
-                    "SERVICE_URL": "https://test.example.com",
+                    "CLOUD_TASKS_PROJECT": "test-project",
+                    "CLOUD_TASKS_LOCATION": "us-central1",
+                    "TASK_HANDLER_HOST": "https://test.example.com",
                 },
             },
         }
     )
-    @patch("google.cloud.tasks_v2.CloudTasksClient")
-    def test_execute_task_failure(self, mock_client_class):
+    def test_execute_task_failure(self):
         from django_tasks_cloud_tasks.views import ExecuteTaskView
         from tests.tasks import failing_view_task
 
@@ -107,9 +105,9 @@ class TestExecuteTaskView:
                 "BACKEND": "django_tasks_cloud_tasks.CloudTasksBackend",
                 "QUEUES": ["default"],
                 "OPTIONS": {
-                    "PROJECT_ID": "test-project",
-                    "LOCATION": "us-central1",
-                    "SERVICE_URL": "https://test.example.com",
+                    "CLOUD_TASKS_PROJECT": "test-project",
+                    "CLOUD_TASKS_LOCATION": "us-central1",
+                    "TASK_HANDLER_HOST": "https://test.example.com",
                 },
             },
         }
@@ -137,9 +135,9 @@ class TestExecuteTaskView:
                 "BACKEND": "django_tasks_cloud_tasks.CloudTasksBackend",
                 "QUEUES": ["default"],
                 "OPTIONS": {
-                    "PROJECT_ID": "test-project",
-                    "LOCATION": "us-central1",
-                    "SERVICE_URL": "https://test.example.com",
+                    "CLOUD_TASKS_PROJECT": "test-project",
+                    "CLOUD_TASKS_LOCATION": "us-central1",
+                    "TASK_HANDLER_HOST": "https://test.example.com",
                 },
             },
         },
