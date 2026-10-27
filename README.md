@@ -50,19 +50,14 @@ sequenceDiagram
 
 - Python 3.12+
 - Django 6.0+
-- google-cloud-tasks
-- google-auth (for OIDC verification)
+
+google-cloud-tasks and google-auth (for OIDC verification) are dependencies
+of the package and are installed with it.
 
 ## Installation
 
 ```bash
 pip install django-tasks-cloud-tasks
-```
-
-Or install with dependencies:
-
-```bash
-pip install django-tasks-cloud-tasks google-cloud-tasks google-auth
 ```
 
 ## Quick Start

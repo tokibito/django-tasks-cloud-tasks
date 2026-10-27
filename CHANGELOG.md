@@ -20,6 +20,10 @@
   ([#23](https://github.com/tokibito/django-tasks-cloud-tasks/issues/23))
 - This file, which is now included in the source distribution.
   ([#23](https://github.com/tokibito/django-tasks-cloud-tasks/issues/23))
+- The README states google-cloud-tasks and google-auth as dependencies of
+  the package. It showed them as a separate install, which installed
+  nothing more.
+  ([#22](https://github.com/tokibito/django-tasks-cloud-tasks/issues/22))
 
 ## 0.1.0
 

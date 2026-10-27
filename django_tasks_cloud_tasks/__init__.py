@@ -7,7 +7,7 @@ Task parameters are stored in Cloud Tasks payload, not in database.
 
 __version__ = "0.1.0"
 
-# Detection utilities are always available (no external dependencies)
+# The detection helpers use the standard library only.
 from .detection import (
     detect_default_service_account,
     detect_gcp_location,
@@ -35,7 +35,13 @@ __all__ = [
 
 
 def __getattr__(name):
-    """Lazy import - modules requiring google-cloud-tasks are loaded only when needed."""
+    """Import the backend and the auth helpers on first access.
+
+    Importing the package, which INSTALLED_APPS does, then loads the
+    detection helpers only. google-cloud-tasks and google-auth are
+    dependencies and always installed; the modules that use them import
+    them inside the functions that need them.
+    """
     if name == "CloudTasksBackend":
         from .backends import CloudTasksBackend
 
