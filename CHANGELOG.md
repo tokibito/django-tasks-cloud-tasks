@@ -9,6 +9,12 @@
 
 ### Fixed
 
+- A token that failed OIDC verification was reported twice: once through
+  the `django_tasks_cloud_tasks` logger and once more as a plain line on
+  stderr, which Cloud Run and App Engine send to Cloud Logging. It is now
+  logged once, through the logger. The README has a new *Logging* section
+  naming the logger.
+  ([#17](https://github.com/tokibito/django-tasks-cloud-tasks/issues/17))
 - The source distribution carries the whole test suite. It had the test
   modules but not `tests/settings.py` and `tests/tasks.py`, so the tests in
   it could not run.

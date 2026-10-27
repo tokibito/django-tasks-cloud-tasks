@@ -388,6 +388,35 @@ When deploying to production, enable OIDC authentication to secure the task exec
    }
    ```
 
+## Logging
+
+The package logs to the `django_tasks_cloud_tasks` logger: a task that
+completes at `INFO`, a task that fails and a token that fails OIDC
+verification at `ERROR`, and a request the endpoint refuses at `WARNING`.
+
+When neither that logger nor the root logger has a handler, Python prints
+`WARNING` and above to stderr and drops the rest. To see every record,
+attach a handler in
+`LOGGING`:
+
+```python
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {"class": "logging.StreamHandler"},
+    },
+    "loggers": {
+        "django_tasks_cloud_tasks": {
+            "handlers": ["console"],
+            "level": "INFO",
+        },
+    },
+}
+```
+
+On Cloud Run and App Engine, stderr goes to Cloud Logging.
+
 ## Local Development
 
 ### Without Cloud Tasks Emulator

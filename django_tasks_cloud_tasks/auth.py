@@ -2,7 +2,6 @@
 
 import functools
 import logging
-import sys
 
 from django.http import JsonResponse
 
@@ -57,7 +56,6 @@ def create_oidc_auth_handler(audience):
 
         except Exception as e:
             logger.error(f"OIDC token verification failed: {e}")
-            print(f"OIDC token verification failed: {e}", file=sys.stderr)
             return False, str(e)
 
     return auth_handler
