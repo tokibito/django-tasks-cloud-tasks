@@ -14,7 +14,6 @@ A Google Cloud Tasks backend for Django 6.0's built-in task framework.
 - **HTTP callback execution** - Tasks are executed via HTTP POST requests from Cloud Tasks
 - **OIDC authentication** - Secure task execution with OIDC token verification
 - **Auto-detection** - Automatically detects GCP project, location, and service URL on Cloud Run/App Engine
-- **Priority support** - Tasks can have priorities
 - **Delayed execution** - Schedule tasks to run at a specific time with `run_after`
 - **Task context** - Access task metadata via context
 
@@ -218,18 +217,12 @@ def good_task(user_id, created_at_iso):
 good_task.enqueue(123, datetime.now().isoformat())  # OK
 ```
 
-### Task with priority
+### Priority
 
-```python
-@task(priority=10)  # Higher priority
-def urgent_task():
-    pass
-
-
-@task(priority=-10)  # Lower priority
-def background_task():
-    pass
-```
+Task priority is not supported: Cloud Tasks dispatches a queue in order of
+schedule time and has no priority, so a task that sets `priority` raises
+`InvalidTask` when it is defined. Put urgent work on its own queue instead,
+as in [Queue-specific tasks](#queue-specific-tasks).
 
 ### Delayed execution
 

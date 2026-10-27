@@ -18,6 +18,11 @@
 - `CONTRIBUTING.md`, covering the development setup, running the tests and
   the linters, and what a pull request needs.
   ([#23](https://github.com/tokibito/django-tasks-cloud-tasks/issues/23))
+- The README no longer lists priority as a feature or shows tasks with a
+  priority. The backend has never supported it, since Cloud Tasks has no
+  task priority, and Django rejects such a task when it is defined. The
+  README now says so and points to a separate queue for urgent work.
+  ([#3](https://github.com/tokibito/django-tasks-cloud-tasks/issues/3))
 - This file, which is now included in the source distribution.
   ([#23](https://github.com/tokibito/django-tasks-cloud-tasks/issues/23))
 
