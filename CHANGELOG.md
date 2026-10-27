@@ -15,6 +15,10 @@
 
 ### Documentation
 
+- The architecture diagram in the README shows the result of `enqueue()`
+  in `READY`, the status the backend returns. It said `NEW`, which
+  `TaskResultStatus` does not have.
+  ([#21](https://github.com/tokibito/django-tasks-cloud-tasks/issues/21))
 - `CONTRIBUTING.md`, covering the development setup, running the tests and
   the linters, and what a pull request needs.
   ([#23](https://github.com/tokibito/django-tasks-cloud-tasks/issues/23))

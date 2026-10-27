@@ -32,7 +32,7 @@ sequenceDiagram
     Backend->>Backend: Serialize task data
     Backend->>CT: Create HTTP Task (with payload)
     CT-->>Backend: Task name
-    Backend-->>App: TaskResult (id, status=NEW)
+    Backend-->>App: TaskResult (id, status=READY)
 
     Note over App,Handler: Task Execution (triggered by Cloud Tasks)
     CT->>Handler: POST /cloudtasks/execute/<br/>(with OIDC token if configured)
