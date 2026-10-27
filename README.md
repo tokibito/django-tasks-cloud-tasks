@@ -396,8 +396,7 @@ verification at `ERROR`, and a request the endpoint refuses at `WARNING`.
 
 When neither that logger nor the root logger has a handler, Python prints
 `WARNING` and above to stderr and drops the rest. To see every record,
-attach a handler in
-`LOGGING`:
+attach a handler in `LOGGING`:
 
 ```python
 LOGGING = {
