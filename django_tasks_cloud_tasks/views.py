@@ -20,19 +20,37 @@ class ExecuteTaskView(View):
     View for receiving requests from Cloud Tasks and executing tasks.
     """
 
+    # Alias of the task backend whose OIDC configuration authenticates the
+    # requests. Authentication runs before the body is read, so it cannot
+    # come from the "backend" field of the payload; that would also let a
+    # request pick a backend without OIDC to skip the check. Set it with
+    # ExecuteTaskView.as_view(backend_alias="...") for another alias.
+    backend_alias = "default"
+
     def get_auth_handler(self):
         """
         Get authentication handler.
 
+        The CLOUD_TASKS_OIDC_AUDIENCE setting, when set, turns verification
+        on with that audience. Otherwise the token is verified whenever the
+        backend has OIDC_SERVICE_ACCOUNT_EMAIL, given or detected, which is
+        what makes Cloud Tasks send one, against the backend's
+        OIDC_AUDIENCE, which is the audience it is sent with.
+
         Can be overridden in subclasses.
         """
         from django.conf import settings
+        from django.tasks import task_backends
+
+        from .auth import create_oidc_auth_handler
 
         audience = getattr(settings, "CLOUD_TASKS_OIDC_AUDIENCE", None)
         if audience:
-            from .auth import create_oidc_auth_handler
-
             return create_oidc_auth_handler(audience)
+
+        backend = task_backends[self.backend_alias]
+        if getattr(backend, "oidc_service_account_email", None):
+            return create_oidc_auth_handler(backend.oidc_audience)
 
         return None
 

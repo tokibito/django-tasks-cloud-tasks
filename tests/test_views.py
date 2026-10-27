@@ -168,3 +168,136 @@ class TestExecuteTaskView:
             assert response.status_code == 401
             data = json.loads(response.content)
             assert data["error"] == "Unauthorized"
+
+
+def cloud_tasks_options(**options):
+    return {
+        "default": {
+            "BACKEND": "django_tasks_cloud_tasks.CloudTasksBackend",
+            "QUEUES": ["default"],
+            "OPTIONS": {
+                "CLOUD_TASKS_PROJECT": "test-project",
+                "CLOUD_TASKS_LOCATION": "us-central1",
+                "TASK_HANDLER_HOST": "https://test.example.com",
+                **options,
+            },
+        },
+    }
+
+
+def execute_request(token=None):
+    from tests.tasks import simple_task
+
+    payload = {
+        "task_id": "view-auth-task",
+        "task_path": simple_task.module_path,
+        "args": [1],
+        "kwargs": {},
+        "queue_name": "default",
+        "backend": "default",
+        "priority": 0,
+        "takes_context": False,
+        "enqueued_at": "2024-01-01T00:00:00+00:00",
+    }
+    headers = {"HTTP_AUTHORIZATION": f"Bearer {token}"} if token else {}
+    return RequestFactory().post(
+        "/cloudtasks/execute/",
+        data=json.dumps(payload),
+        content_type="application/json",
+        **headers,
+    )
+
+
+GOOGLE_CLAIMS = {"iss": "https://accounts.google.com"}
+SERVICE_ACCOUNT = "invoker@test-project.iam.gserviceaccount.com"
+
+
+@pytest.mark.django_db
+class TestExecuteTaskViewAuthentication:
+    @override_settings(
+        TASKS=cloud_tasks_options(OIDC_SERVICE_ACCOUNT_EMAIL=SERVICE_ACCOUNT)
+    )
+    def test_backend_with_oidc_rejects_request_without_token(self):
+        from django_tasks_cloud_tasks.views import ExecuteTaskView
+
+        response = ExecuteTaskView.as_view()(execute_request())
+
+        assert response.status_code == 401
+
+    @override_settings(
+        TASKS=cloud_tasks_options(OIDC_SERVICE_ACCOUNT_EMAIL=SERVICE_ACCOUNT)
+    )
+    def test_backend_with_oidc_verifies_against_handler_host(self):
+        from django_tasks_cloud_tasks.views import ExecuteTaskView
+
+        with patch(
+            "google.oauth2.id_token.verify_oauth2_token", return_value=GOOGLE_CLAIMS
+        ) as verify:
+            response = ExecuteTaskView.as_view()(execute_request("token"))
+
+        assert response.status_code == 200
+        assert verify.call_args.kwargs["audience"] == "https://test.example.com"
+
+    @override_settings(
+        TASKS=cloud_tasks_options(
+            OIDC_SERVICE_ACCOUNT_EMAIL=SERVICE_ACCOUNT,
+            OIDC_AUDIENCE="https://audience.example.com",
+        )
+    )
+    def test_backend_with_oidc_verifies_against_oidc_audience(self):
+        from django_tasks_cloud_tasks.views import ExecuteTaskView
+
+        with patch(
+            "google.oauth2.id_token.verify_oauth2_token", return_value=GOOGLE_CLAIMS
+        ) as verify:
+            response = ExecuteTaskView.as_view()(execute_request("token"))
+
+        assert response.status_code == 200
+        assert verify.call_args.kwargs["audience"] == "https://audience.example.com"
+
+    @override_settings(
+        TASKS=cloud_tasks_options(OIDC_SERVICE_ACCOUNT_EMAIL=SERVICE_ACCOUNT),
+        CLOUD_TASKS_OIDC_AUDIENCE="https://override.example.com",
+    )
+    def test_audience_setting_overrides_backend(self):
+        from django_tasks_cloud_tasks.views import ExecuteTaskView
+
+        with patch(
+            "google.oauth2.id_token.verify_oauth2_token", return_value=GOOGLE_CLAIMS
+        ) as verify:
+            response = ExecuteTaskView.as_view()(execute_request("token"))
+
+        assert response.status_code == 200
+        assert verify.call_args.kwargs["audience"] == "https://override.example.com"
+
+    @override_settings(TASKS=cloud_tasks_options())
+    def test_backend_without_oidc_does_not_verify(self):
+        from django_tasks_cloud_tasks.views import ExecuteTaskView
+
+        with patch(
+            "django_tasks_cloud_tasks.detection.detect_default_service_account",
+            return_value=None,
+        ):
+            response = ExecuteTaskView.as_view()(execute_request())
+
+        assert response.status_code == 200
+
+    @override_settings(
+        TASKS={
+            **cloud_tasks_options(),
+            "cloud": cloud_tasks_options(OIDC_SERVICE_ACCOUNT_EMAIL=SERVICE_ACCOUNT)[
+                "default"
+            ],
+        }
+    )
+    def test_backend_alias_selects_the_backend(self):
+        from django_tasks_cloud_tasks.views import ExecuteTaskView
+
+        view = ExecuteTaskView.as_view(backend_alias="cloud")
+        with patch(
+            "django_tasks_cloud_tasks.detection.detect_default_service_account",
+            return_value=None,
+        ):
+            response = view(execute_request())
+
+        assert response.status_code == 401

@@ -7,6 +7,27 @@
 - Django 6.1 is supported and tested alongside Django 6.0, on Python 3.12
   to 3.14. ([#1](https://github.com/tokibito/django-tasks-cloud-tasks/pull/1))
 
+### Changed
+
+- **Security: the execute endpoint verifies the OIDC token whenever the
+  backend has a service account.** Before, `POST /cloudtasks/execute/`
+  checked a token only when the `CLOUD_TASKS_OIDC_AUDIENCE` Django setting
+  was set, which the README did not mention: a project that followed the
+  README's *OIDC Authentication* section had Cloud Tasks send a token that
+  nobody checked, and an endpoint that ran any task for any request. On
+  Cloud Run and App Engine the service account is detected from the
+  metadata server, so that was every deployment there that did not set the
+  setting. The endpoint now verifies the token whenever the `default`
+  backend has `OIDC_SERVICE_ACCOUNT_EMAIL`, set or detected, against the
+  backend's `OIDC_AUDIENCE`, the audience Cloud Tasks sends the token with.
+  Requests from Cloud Tasks are unaffected. A request without a valid
+  token, such as one sent by hand or by a scheduler, is now refused with
+  `401`. `CLOUD_TASKS_OIDC_AUDIENCE` keeps working and takes precedence. A
+  project whose Cloud Tasks backend is not the `default` alias names it
+  with `ExecuteTaskView.as_view(backend_alias=...)`. Without a service
+  account, as in local development, the endpoint stays open, as before.
+  ([#7](https://github.com/tokibito/django-tasks-cloud-tasks/issues/7))
+
 ### Fixed
 
 - A token that failed OIDC verification was reported twice: once through

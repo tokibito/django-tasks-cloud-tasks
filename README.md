@@ -265,7 +265,7 @@ TASKS = {
             "CLOUD_TASKS_LOCATION": "asia-northeast1",
             "TASK_HANDLER_HOST": "https://your-app.run.app",
             "TASK_HANDLER_PATH": "/cloudtasks/execute/",  # default
-            # Optional: OIDC authentication
+            # OIDC authentication (the service account is auto-detected on GCP)
             "OIDC_SERVICE_ACCOUNT_EMAIL": "cloud-tasks-invoker@your-project.iam.gserviceaccount.com",
             "OIDC_AUDIENCE": "https://your-app.run.app",
         },
@@ -281,8 +281,8 @@ TASKS = {
 | `CLOUD_TASKS_LOCATION` | Auto-detected | Cloud Tasks location (e.g., `asia-northeast1`) |
 | `TASK_HANDLER_HOST` | Auto-detected | Base URL for task execution endpoint |
 | `TASK_HANDLER_PATH` | No | Task execution endpoint path (default: `/cloudtasks/execute/`) |
-| `OIDC_SERVICE_ACCOUNT_EMAIL` | No | Service account email for OIDC token |
-| `OIDC_AUDIENCE` | No | OIDC audience (defaults to TASK_HANDLER_HOST) |
+| `OIDC_SERVICE_ACCOUNT_EMAIL` | Auto-detected | Service account Cloud Tasks signs an OIDC token as. When set or detected, the endpoint verifies the token (see [OIDC Authentication](#oidc-authentication)) |
+| `OIDC_AUDIENCE` | No | Audience of the OIDC token, both sent and verified (defaults to `TASK_HANDLER_HOST`) |
 
 ### Auto-Detection
 
@@ -293,6 +293,7 @@ Settings are automatically detected from environment variables or GCP metadata:
 | `CLOUD_TASKS_PROJECT` | `GOOGLE_CLOUD_PROJECT` env var, or metadata server |
 | `CLOUD_TASKS_LOCATION` | `CLOUD_TASKS_LOCATION`, `CLOUD_RUN_REGION` env var, or metadata server |
 | `TASK_HANDLER_HOST` | `SERVICE_URL` env var, or built from `K_SERVICE` (Cloud Run) / `GAE_SERVICE` (App Engine) |
+| `OIDC_SERVICE_ACCOUNT_EMAIL` | The default service account, from the metadata server |
 
 ### Environment Variables
 
@@ -309,7 +310,9 @@ For local development:
 
 ### POST `/cloudtasks/execute/`
 
-Task execution endpoint called by Cloud Tasks.
+Task execution endpoint called by Cloud Tasks. It runs the task the request
+names with the arguments the request gives, so it has to be authenticated;
+see [OIDC Authentication](#oidc-authentication).
 
 Request body (JSON):
 ```json
@@ -338,7 +341,44 @@ Response (error):
 
 ## OIDC Authentication
 
-When deploying to production, enable OIDC authentication to secure the task execution endpoint.
+Cloud Tasks can sign each request with an OIDC token for a service account,
+and the endpoint verifies it. Both sides are driven by the backend's
+options:
+
+- With `OIDC_SERVICE_ACCOUNT_EMAIL` set, or detected from the metadata
+  server on Cloud Run and App Engine, the backend asks Cloud Tasks to send a
+  token, and the endpoint rejects a request without a valid one with
+  `401 Unauthorized`.
+- The token's audience is `OIDC_AUDIENCE`, which defaults to
+  `TASK_HANDLER_HOST`. The endpoint checks the same value, so the two cannot
+  drift apart.
+
+**Without a service account, the endpoint is open**: anyone who can reach it
+can run any task with any arguments. That is the case outside Google Cloud,
+for example in local development, where the metadata server is not
+available. A deployment that runs without OIDC has to protect the endpoint
+some other way.
+
+The endpoint uses the OIDC options of the `default` task backend. A project
+whose Cloud Tasks backend has another alias says so in its URLconf:
+
+```python
+from django.urls import path
+
+from django_tasks_cloud_tasks.views import ExecuteTaskView
+
+urlpatterns = [
+    path(
+        "cloudtasks/execute/",
+        ExecuteTaskView.as_view(backend_alias="cloud"),
+    ),
+]
+```
+
+The `CLOUD_TASKS_OIDC_AUDIENCE` Django setting, when set, turns verification
+on with that audience whatever the backend says. It is kept for projects
+that used it before the backend's options were read; new projects do not
+need it.
 
 ### Setup
 
@@ -374,6 +414,17 @@ When deploying to production, enable OIDC authentication to secure the task exec
            },
        },
    }
+   ```
+
+4. Check that a request without a token is refused:
+   ```bash
+   curl -i -X POST https://your-app.run.app/cloudtasks/execute/ \
+       -H "Content-Type: application/json" -d '{}'
+   ```
+   ```
+   HTTP/2 401
+   ...
+   {"error": "Unauthorized", "detail": "Missing or invalid Authorization header"}
    ```
 
 ## Logging
@@ -486,6 +537,11 @@ gcloud tasks queues create high-priority --location asia-northeast1
 ### 3. Configuration
 
 All settings are auto-detected on Cloud Run. No additional configuration needed for basic usage.
+
+`--allow-unauthenticated` lets Cloud Tasks reach the service without IAM.
+The task endpoint is still protected: the service account is detected from
+the metadata server, so Cloud Tasks sends an OIDC token and the endpoint
+verifies it (see [OIDC Authentication](#oidc-authentication)).
 
 ## Example Project
 
