@@ -334,8 +334,8 @@ Response (success):
 {"status": "success", "task_id": "uuid"}
 ```
 
-Response (the task raised an exception), with status `500` so that Cloud
-Tasks retries the task:
+Response (the task raised an exception, or its function could not be
+imported), with status `500` so that Cloud Tasks retries the task:
 ```json
 {"status": "failed", "task_id": "uuid", "errors": [{"exception": "builtins.ValueError"}]}
 ```
@@ -448,6 +448,18 @@ need it.
 The package logs to the `django_tasks_cloud_tasks` logger: a task that
 completes at `INFO`, a task that fails and a token that fails OIDC
 verification at `ERROR`, and a request the endpoint refuses at `WARNING`.
+
+A task whose function cannot be imported (the module was renamed, the
+function removed, or the revision that serves the request runs older code
+than the one that enqueued it) is logged at `ERROR` as
+`Task could not be started`, with the traceback and the Cloud Tasks
+headers. Cloud Tasks retries it, so a revision that has the code can still
+run it during a deploy; `task_started` and `task_finished` are not sent for
+it, since there is no task to send them with:
+
+```
+Task could not be started: id=3kZ... path=myapp.tasks.send_email error=builtins.ImportError queue=default cloud_task=4385939532263547437 retry_count=0
+```
 
 A payload the endpoint cannot execute is logged at `ERROR` with what is
 wrong, the task it names as far as it can be read, the keys it has (not

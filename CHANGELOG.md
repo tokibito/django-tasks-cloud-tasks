@@ -41,6 +41,21 @@
 
 ### Fixed
 
+- **A task whose function could not be imported left no trace but a
+  generic error.** When the module was renamed, the function removed, or
+  the revision serving the request ran older code than the one that
+  enqueued the task, the endpoint logged `Task execution failed` with no
+  task fields and answered `500` with the exception text. It is now
+  reported like a task that raised: an `ERROR` record
+  `Task could not be started: id=... path=... error=...`, with the
+  traceback and the Cloud Tasks headers, and a `500` response in the usual
+  failure shape, `{"status": "failed", "task_id": ..., "errors": [...]}`. A
+  `task_path` that names something other than a task is handled the same
+  way. The answer stays `500`, so Cloud Tasks keeps retrying and a revision
+  that has the code can pick the task up. `task_started` and
+  `task_finished` are not sent for it, since Django's own receivers need
+  the task, as in django-database-task.
+  ([#9](https://github.com/tokibito/django-tasks-cloud-tasks/issues/9))
 - **A payload with a missing field answered `500`.** A body that parsed as
   JSON but lacked a required field, had one of the wrong type or was not an
   object raised inside the executor and was answered `500` with the

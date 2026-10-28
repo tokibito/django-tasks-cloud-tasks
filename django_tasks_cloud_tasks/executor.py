@@ -3,7 +3,13 @@
 import logging
 from traceback import format_exception
 
-from django.tasks.base import TaskContext, TaskError, TaskResult, TaskResultStatus
+from django.tasks.base import (
+    Task,
+    TaskContext,
+    TaskError,
+    TaskResult,
+    TaskResultStatus,
+)
 from django.tasks.signals import task_finished, task_started
 from django.utils import timezone
 from django.utils.module_loading import import_string
@@ -54,6 +60,34 @@ def validate_payload(payload):
     return None
 
 
+def cloud_tasks_log_fields(headers):
+    """
+    Read the Cloud Tasks request headers that identify an attempt.
+
+    Args:
+        headers: The request headers, or None outside a request
+
+    Returns:
+        tuple: (queue name, Cloud Tasks task name, retry count), each None
+        when the header is absent, as on a request Cloud Tasks did not send
+    """
+    if headers is None:
+        return None, None, None
+    return (
+        headers.get("X-CloudTasks-QueueName"),
+        headers.get("X-CloudTasks-TaskName"),
+        headers.get("X-CloudTasks-TaskRetryCount"),
+    )
+
+
+def _task_error(exc):
+    exception_type = type(exc)
+    return TaskError(
+        exception_class_path=f"{exception_type.__module__}.{exception_type.__qualname__}",
+        traceback="".join(format_exception(exc)),
+    )
+
+
 def _json_type(value):
     """Name the JSON type of a value parsed from JSON."""
     if value is None:
@@ -67,16 +101,25 @@ def _json_type(value):
     return "an array"
 
 
-def execute_task_from_payload(payload, worker_id):
+def execute_task_from_payload(payload, worker_id, headers=None):
     """
     Execute task from payload.
+
+    A task that cannot be resolved (the module was renamed, the function
+    removed, the revision runs older code than the one that enqueued it, or
+    the path names something that is not a Task) is reported as FAILED with
+    the error, like a task that raised. task_started and task_finished are
+    not sent for it, since there is no task to send them with; the ERROR
+    record "Task could not be started" reports it instead.
 
     Args:
         payload: Payload received from Cloud Tasks (dict)
         worker_id: Worker identifier
+        headers: The request headers, for the Cloud Tasks fields in the log
 
     Returns:
-        tuple: (TaskResult, success: bool)
+        tuple: (TaskResult, success: bool). The result of a task that could
+        not be started has ``task`` set to None.
     """
     from .backends import CloudTasksBackend
 
@@ -91,9 +134,6 @@ def execute_task_from_payload(payload, worker_id):
     takes_context = payload.get("takes_context", False)
     enqueued_at_str = payload.get("enqueued_at")
 
-    # Get task function
-    task_func = import_string(task_path)
-
     # Parse enqueued_at
     enqueued_at = None
     if enqueued_at_str:
@@ -102,6 +142,37 @@ def execute_task_from_payload(payload, worker_id):
         enqueued_at = datetime.fromisoformat(enqueued_at_str)
 
     now = timezone.now()
+
+    # Get task function
+    try:
+        task_func = import_string(task_path)
+        if not isinstance(task_func, Task):
+            raise TypeError(f"{task_path} is not a Task")
+    except Exception as e:
+        error = _task_error(e)
+        logger.exception(
+            "Task could not be started: id=%s path=%s error=%s queue=%s "
+            "cloud_task=%s retry_count=%s",
+            task_id,
+            task_path,
+            error.exception_class_path,
+            *cloud_tasks_log_fields(headers),
+        )
+        task_result = TaskResult(
+            task=None,
+            id=task_id,
+            status=TaskResultStatus.FAILED,
+            enqueued_at=enqueued_at,
+            started_at=None,
+            finished_at=now,
+            last_attempted_at=now,
+            args=args,
+            kwargs=kwargs,
+            backend=backend_alias,
+            errors=[error],
+            worker_ids=[worker_id],
+        )
+        return task_result, False
 
     # Build TaskResult
     task_result = TaskResult(
@@ -152,11 +223,7 @@ def execute_task_from_payload(payload, worker_id):
         object.__setattr__(task_result, "finished_at", timezone.now())
         object.__setattr__(task_result, "status", TaskResultStatus.FAILED)
 
-        exception_type = type(e)
-        error = TaskError(
-            exception_class_path=f"{exception_type.__module__}.{exception_type.__qualname__}",
-            traceback="".join(format_exception(e)),
-        )
+        error = _task_error(e)
         task_result.errors.append(error)
 
         # Log output (format similar to django-database-task)

@@ -494,3 +494,16 @@ class TestExecuteTaskViewPayloadValidation:
         assert "cloud_task=view-payload-task" in message
         assert "retry_count=3" in message
         assert "secret" not in message
+
+    def test_task_that_cannot_be_imported_returns_500_failed(self):
+        payload = valid_payload()
+        payload["task_path"] = "tests.tasks.no_such_task"
+
+        response = post_payload(payload)
+
+        assert response.status_code == 500
+        assert json.loads(response.content) == {
+            "status": "failed",
+            "task_id": "view-payload-task",
+            "errors": [{"exception": "builtins.ImportError"}],
+        }

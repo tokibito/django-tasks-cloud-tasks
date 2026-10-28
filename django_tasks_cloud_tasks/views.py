@@ -9,7 +9,11 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
-from .executor import execute_task_from_payload, validate_payload
+from .executor import (
+    cloud_tasks_log_fields,
+    execute_task_from_payload,
+    validate_payload,
+)
 
 logger = logging.getLogger("django_tasks_cloud_tasks")
 
@@ -94,9 +98,7 @@ class ExecuteTaskView(View):
                 fields.get("task_id"),
                 fields.get("task_path"),
                 sorted(fields) if isinstance(payload, dict) else None,
-                request.headers.get("X-CloudTasks-QueueName"),
-                request.headers.get("X-CloudTasks-TaskName"),
-                request.headers.get("X-CloudTasks-TaskRetryCount"),
+                *cloud_tasks_log_fields(request.headers),
             )
             return JsonResponse(
                 {"error": "Invalid payload", "detail": error_message},
@@ -108,7 +110,9 @@ class ExecuteTaskView(View):
 
         # Execute task
         try:
-            task_result, success = execute_task_from_payload(payload, worker_id)
+            task_result, success = execute_task_from_payload(
+                payload, worker_id, request.headers
+            )
         except Exception as e:
             logger.exception("Task execution failed")
             return JsonResponse(
@@ -126,8 +130,11 @@ class ExecuteTaskView(View):
         else:
             # Return 500 to enable Cloud Tasks retry. The traceback stays out
             # of the response: Cloud Tasks does not keep the body, and anyone
-            # who can reach the endpoint would read it. It is logged instead,
-            # with the ERROR record of the django.tasks logger.
+            # who can reach the endpoint would read it. It is logged instead:
+            # with the ERROR record of the django.tasks logger for a task that
+            # raised, and with "Task could not be started" for a task that
+            # could not be resolved. A task that cannot be imported is retried
+            # too, so a revision with the code can still pick it up.
             return JsonResponse(
                 {
                     "status": "failed",
