@@ -343,6 +343,18 @@ Tasks retries the task:
 The traceback is not in the response. It is in the log, under the task id;
 see [Logging](#logging).
 
+Response (the payload cannot be executed: a required field is missing or
+has the wrong type, or the body is not a JSON object), with status `400`:
+```json
+{"error": "Invalid payload", "detail": "missing field: task_path"}
+```
+
+The required fields are `task_id`, `task_path`, `args`, `kwargs`,
+`queue_name` and `backend`. Cloud Tasks retries a `400` like any answer
+outside 2xx, so a payload enqueued by another version of the application
+during a deploy can still be picked up by a revision that understands it.
+The log names the cause; see [Logging](#logging).
+
 ## OIDC Authentication
 
 Cloud Tasks can sign each request with an OIDC token for a service account,
@@ -436,6 +448,16 @@ need it.
 The package logs to the `django_tasks_cloud_tasks` logger: a task that
 completes at `INFO`, a task that fails and a token that fails OIDC
 verification at `ERROR`, and a request the endpoint refuses at `WARNING`.
+
+A payload the endpoint cannot execute is logged at `ERROR` with what is
+wrong, the task it names as far as it can be read, the keys it has (not
+their values, which may hold the task's arguments), and the Cloud Tasks
+headers. Without those headers the request did not come from Cloud Tasks;
+`retry_count` says how often Cloud Tasks has already tried it:
+
+```
+Invalid payload: detail=args must be a list id=3kZ... path=myapp.tasks.send_email keys=['args', 'backend', ...] queue=default cloud_task=4385939532263547437 retry_count=2
+```
 
 The traceback of a failed task is in a record of Django's own
 `django.tasks` logger: `Task id=... path=... state=FAILED`, at `ERROR`, with

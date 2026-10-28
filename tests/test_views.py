@@ -350,3 +350,147 @@ class TestExecuteTaskViewAuthentication:
             response = view(execute_request())
 
         assert response.status_code == 401
+
+
+def valid_payload():
+    from tests.tasks import simple_task
+
+    return {
+        "task_id": "view-payload-task",
+        "task_path": simple_task.module_path,
+        "args": [1],
+        "kwargs": {},
+        "queue_name": "default",
+        "backend": "default",
+        "priority": 0,
+        "takes_context": False,
+        "enqueued_at": "2024-01-01T00:00:00+00:00",
+    }
+
+
+def post_payload(payload):
+    from django_tasks_cloud_tasks.views import ExecuteTaskView
+
+    request = RequestFactory().post(
+        "/cloudtasks/execute/",
+        data=json.dumps(payload),
+        content_type="application/json",
+    )
+    return ExecuteTaskView.as_view()(request)
+
+
+@pytest.mark.django_db
+class TestExecuteTaskViewPayloadValidation:
+    @pytest.fixture(autouse=True)
+    def tasks_settings(self, settings):
+        settings.TASKS = cloud_tasks_options()
+
+    @pytest.mark.parametrize(
+        "field", ["task_id", "task_path", "args", "kwargs", "queue_name", "backend"]
+    )
+    def test_missing_field_returns_400(self, field, caplog):
+        payload = valid_payload()
+        del payload[field]
+
+        with caplog.at_level(logging.ERROR, logger="django_tasks_cloud_tasks"):
+            response = post_payload(payload)
+
+        assert response.status_code == 400
+        assert json.loads(response.content) == {
+            "error": "Invalid payload",
+            "detail": f"missing field: {field}",
+        }
+        [record] = [
+            r for r in caplog.records if r.getMessage().startswith("Invalid payload:")
+        ]
+        assert f"detail=missing field: {field}" in record.getMessage()
+
+    @pytest.mark.parametrize(
+        "field, value, detail",
+        [
+            ("task_path", None, "task_path must be a string"),
+            ("args", {"x": 1}, "args must be a list"),
+            ("kwargs", [1], "kwargs must be an object"),
+            (
+                "enqueued_at",
+                "yesterday",
+                "enqueued_at must be an ISO 8601 date and time",
+            ),
+        ],
+    )
+    def test_wrong_type_returns_400(self, field, value, detail):
+        payload = valid_payload()
+        payload[field] = value
+
+        response = post_payload(payload)
+
+        assert response.status_code == 400
+        assert json.loads(response.content)["detail"] == detail
+
+    @pytest.mark.parametrize(
+        "payload, json_type",
+        [([], "an array"), ("task", "a string"), (1, "a number"), (None, "null")],
+    )
+    def test_payload_that_is_not_an_object_returns_400(self, payload, json_type):
+        response = post_payload(payload)
+
+        assert response.status_code == 400
+        assert (
+            json.loads(response.content)["detail"]
+            == f"the payload must be a JSON object, not {json_type}"
+        )
+
+    def test_invalid_payload_runs_nothing(self):
+        from django.tasks.signals import task_started
+
+        payload = valid_payload()
+        del payload["args"]
+        received = []
+        task_started.connect(received.append, dispatch_uid="payload-test")
+        try:
+            response = post_payload(payload)
+        finally:
+            task_started.disconnect(dispatch_uid="payload-test")
+
+        assert response.status_code == 400
+        assert received == []
+
+    def test_valid_payload_runs_the_task(self):
+        with patch(
+            "django_tasks_cloud_tasks.detection.detect_default_service_account",
+            return_value=None,
+        ):
+            response = post_payload(valid_payload())
+
+        assert response.status_code == 200
+
+    def test_invalid_payload_log_names_the_task_and_the_cloud_task(self, caplog):
+        from django_tasks_cloud_tasks.views import ExecuteTaskView
+
+        payload = valid_payload()
+        payload["args"] = {"secret": "value"}
+        request = RequestFactory().post(
+            "/cloudtasks/execute/",
+            data=json.dumps(payload),
+            content_type="application/json",
+            HTTP_X_CLOUDTASKS_QUEUENAME="default",
+            HTTP_X_CLOUDTASKS_TASKNAME="view-payload-task",
+            HTTP_X_CLOUDTASKS_TASKRETRYCOUNT="3",
+        )
+
+        with caplog.at_level(logging.ERROR, logger="django_tasks_cloud_tasks"):
+            ExecuteTaskView.as_view()(request)
+
+        [record] = [
+            r for r in caplog.records if r.getMessage().startswith("Invalid payload:")
+        ]
+        message = record.getMessage()
+        assert record.levelno == logging.ERROR
+        assert "detail=args must be a list" in message
+        assert "id=view-payload-task" in message
+        assert "path=tests.tasks.simple_task" in message
+        assert "keys=['args', 'backend'," in message
+        assert "queue=default" in message
+        assert "cloud_task=view-payload-task" in message
+        assert "retry_count=3" in message
+        assert "secret" not in message

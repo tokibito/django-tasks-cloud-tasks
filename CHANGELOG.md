@@ -41,6 +41,16 @@
 
 ### Fixed
 
+- **A payload with a missing field answered `500`.** A body that parsed as
+  JSON but lacked a required field, had one of the wrong type or was not an
+  object raised inside the executor and was answered `500` with the
+  exception text. The endpoint now checks the payload first and answers
+  `400` with `{"error": "Invalid payload", "detail": ...}` naming the field,
+  and logs an `ERROR` record with the cause, the task as far as it can be
+  read, the payload's keys and the Cloud Tasks headers. Cloud Tasks retries
+  a `400` as it does a `500`; the gain is the answer and the log, which now
+  say what is wrong. Valid requests are unchanged.
+  ([#10](https://github.com/tokibito/django-tasks-cloud-tasks/issues/10))
 - A token that failed OIDC verification was reported twice: once through
   the `django_tasks_cloud_tasks` logger and once more as a plain line on
   stderr, which Cloud Run and App Engine send to Cloud Logging. It is now

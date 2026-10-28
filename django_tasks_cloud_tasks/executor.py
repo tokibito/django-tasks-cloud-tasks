@@ -12,6 +12,60 @@ from django.utils.module_loading import import_string
 # Allows distinguishing log sources when using multiple backends
 logger = logging.getLogger("django_tasks_cloud_tasks")
 
+# Fields execute_task_from_payload() requires, with the JSON type of each.
+PAYLOAD_FIELDS = {
+    "task_id": (str, "a string"),
+    "task_path": (str, "a string"),
+    "args": (list, "a list"),
+    "kwargs": (dict, "an object"),
+    "queue_name": (str, "a string"),
+    "backend": (str, "a string"),
+}
+
+
+def validate_payload(payload):
+    """
+    Check that a payload can be executed.
+
+    Args:
+        payload: Payload received from Cloud Tasks, as parsed from JSON
+
+    Returns:
+        str: Why the payload cannot be executed, or None when it can
+    """
+    if not isinstance(payload, dict):
+        return f"the payload must be a JSON object, not {_json_type(payload)}"
+
+    for name, (expected_type, description) in PAYLOAD_FIELDS.items():
+        if name not in payload:
+            return f"missing field: {name}"
+        if not isinstance(payload[name], expected_type):
+            return f"{name} must be {description}"
+
+    enqueued_at = payload.get("enqueued_at")
+    if enqueued_at is not None:
+        from datetime import datetime
+
+        try:
+            datetime.fromisoformat(enqueued_at)
+        except (TypeError, ValueError):
+            return "enqueued_at must be an ISO 8601 date and time"
+
+    return None
+
+
+def _json_type(value):
+    """Name the JSON type of a value parsed from JSON."""
+    if value is None:
+        return "null"
+    if isinstance(value, bool):
+        return "a boolean"
+    if isinstance(value, int | float):
+        return "a number"
+    if isinstance(value, str):
+        return "a string"
+    return "an array"
+
 
 def execute_task_from_payload(payload, worker_id):
     """

@@ -9,7 +9,7 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 
-from .executor import execute_task_from_payload
+from .executor import execute_task_from_payload, validate_payload
 
 logger = logging.getLogger("django_tasks_cloud_tasks")
 
@@ -72,6 +72,34 @@ class ExecuteTaskView(View):
         except json.JSONDecodeError as e:
             return JsonResponse(
                 {"error": "Invalid JSON", "detail": str(e)},
+                status=400,
+            )
+
+        # A malformed payload cannot succeed, so it is answered 400 rather
+        # than 500. Cloud Tasks retries any answer outside 2xx all the same;
+        # that lets a revision that understands the payload pick it up when
+        # it was enqueued by another version during a deploy.
+        error_message = validate_payload(payload)
+        if error_message:
+            # Enough to find the cause from the log alone: what is wrong, the
+            # task when it can be told, and the Cloud Tasks headers, which
+            # say whether Cloud Tasks sent the request and which attempt it
+            # is. The keys are logged and not the values, which may hold the
+            # task's arguments.
+            fields = payload if isinstance(payload, dict) else {}
+            logger.error(
+                "Invalid payload: detail=%s id=%s path=%s keys=%s queue=%s "
+                "cloud_task=%s retry_count=%s",
+                error_message,
+                fields.get("task_id"),
+                fields.get("task_path"),
+                sorted(fields) if isinstance(payload, dict) else None,
+                request.headers.get("X-CloudTasks-QueueName"),
+                request.headers.get("X-CloudTasks-TaskName"),
+                request.headers.get("X-CloudTasks-TaskRetryCount"),
+            )
+            return JsonResponse(
+                {"error": "Invalid payload", "detail": error_message},
                 status=400,
             )
 
