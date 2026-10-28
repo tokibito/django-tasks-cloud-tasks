@@ -3,6 +3,7 @@
 import os
 import urllib.error
 import urllib.request
+import warnings
 
 METADATA_SERVER = "http://metadata.google.internal"
 METADATA_HEADERS = {"Metadata-Flavor": "Google"}
@@ -49,8 +50,9 @@ def detect_gcp_location():
 
     Priority:
     1. CLOUD_TASKS_LOCATION environment variable (explicit)
-    2. Cloud Run: CLOUD_RUN_REGION environment variable
-    3. Metadata server
+    2. Cloud Run: the region of the service (CLOUD_RUN_REGION, deprecated,
+       or the metadata server)
+    3. Metadata server, from the zone
     """
     # Explicit environment variable
     location = os.environ.get("CLOUD_TASKS_LOCATION")
@@ -59,7 +61,7 @@ def detect_gcp_location():
 
     # Cloud Run case
     if is_cloud_run():
-        region = os.environ.get("CLOUD_RUN_REGION")
+        region = _detect_cloud_run_region()
         if region:
             return region
 
@@ -85,10 +87,15 @@ def detect_task_handler_host():
 
     Priority:
     1. SERVICE_URL environment variable (explicit)
-    2. Cloud Run: Generate URL from K_SERVICE
+    2. Cloud Run: Generate URL from K_SERVICE, the project number and the
+       region
     3. App Engine: Generate URL from GAE_VERSION and GAE_SERVICE
 
-    Supports Blue/Green deployment.
+    On App Engine the URL names the version, so tasks run on the version
+    that enqueued them. On Cloud Run it is the service URL, which serves the
+    revisions that receive traffic: a URL for one revision exists only as a
+    traffic tag, which the environment does not reveal, so pinning tasks to
+    a revision needs a tag and SERVICE_URL.
     """
     # Explicit environment variable
     service_url = os.environ.get("SERVICE_URL")
@@ -97,15 +104,18 @@ def detect_task_handler_host():
 
     if is_cloud_run():
         service = os.environ.get("K_SERVICE")
-        revision = os.environ.get("K_REVISION")
-        project = detect_gcp_project()
-        region = os.environ.get("CLOUD_RUN_REGION")
+        region = _detect_cloud_run_region()
+        # The deterministic Cloud Run URL carries the project number, which
+        # no environment variable holds, not the project ID.
+        project_number = _get_metadata("project/numeric-project-id")
 
-        if all([service, project, region]):
-            # Generate revision-specific URL (Blue/Green support)
-            if revision:
-                return f"https://{revision}---{service}-{project}.{region}.run.app"
-            return f"https://{service}-{project}.{region}.run.app"
+        # Cloud Run gives a service this URL only when the first DNS label
+        # fits in 63 characters; a longer one has a hash-based URL alone.
+        if all([service, region, project_number]) and (
+            len(f"{service}-{project_number}") <= 63
+        ):
+            # Format: https://{service}-{project-number}.{region}.run.app
+            return f"https://{service}-{project_number}.{region}.run.app"
 
     if is_app_engine():
         service = os.environ.get("GAE_SERVICE")
@@ -119,6 +129,34 @@ def detect_task_handler_host():
                 return f"https://{version}-dot-{service}-dot-{project}.appspot.com"
             return f"https://{version}-dot-{project}.appspot.com"
 
+    return None
+
+
+def _detect_cloud_run_region():
+    """
+    Detect the region of the Cloud Run service.
+
+    Cloud Run does not set CLOUD_RUN_REGION. It is still read, with a
+    DeprecationWarning, for projects that set it by hand; otherwise the
+    region comes from the metadata server.
+    """
+    region = os.environ.get("CLOUD_RUN_REGION")
+    if region:
+        warnings.warn(
+            "The CLOUD_RUN_REGION environment variable is deprecated and will "
+            "not be read from django-tasks-cloud-tasks 0.3.0. The Cloud Run "
+            "region is detected from the metadata server; set "
+            "CLOUD_TASKS_LOCATION for the Cloud Tasks location, or "
+            "SERVICE_URL for the task handler host.",
+            DeprecationWarning,
+            stacklevel=3,
+        )
+        return region
+
+    # Format: "projects/PROJECT_NUMBER/regions/REGION"
+    region = _get_metadata("instance/region")
+    if region:
+        return region.split("/")[-1]
     return None
 
 

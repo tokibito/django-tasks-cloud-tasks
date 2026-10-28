@@ -39,8 +39,28 @@
   that read the traceback from the response reads the log instead.
   ([#11](https://github.com/tokibito/django-tasks-cloud-tasks/issues/11))
 
+### Deprecated
+
+- **`CLOUD_RUN_REGION`.** Cloud Run does not set this environment variable,
+  and the region is now detected from the metadata server. It is still read
+  for the location and the handler host, with a `DeprecationWarning`, and
+  will not be read from 0.3.0. Set `CLOUD_TASKS_LOCATION` or `SERVICE_URL`
+  instead. Existing projects need no change until then.
+  ([#4](https://github.com/tokibito/django-tasks-cloud-tasks/issues/4))
+
 ### Fixed
 
+- **On Cloud Run, the detected handler host did not exist.** Without
+  `SERVICE_URL`, the host was built from the project ID, where Cloud Run's
+  URL has the project number, and with the revision as a prefix, which is
+  the URL of a traffic tag nobody created; and it was only built at all
+  when `CLOUD_RUN_REGION`, which Cloud Run does not set, was set by hand.
+  It is now `https://SERVICE-PROJECT_NUMBER.REGION.run.app`, from
+  `K_SERVICE` and the project number and region from the metadata server.
+  On Cloud Run the location is detected from the service's region too.
+  Projects that set `TASK_HANDLER_HOST` or `SERVICE_URL` see no change; the
+  README says how to pin tasks to a revision with a traffic tag.
+  ([#4](https://github.com/tokibito/django-tasks-cloud-tasks/issues/4))
 - **On App Engine, a service other than `default` enqueued tasks to the
   default service.** The detected `TASK_HANDLER_HOST` was built from
   `GAE_VERSION` and the project only, which is the default service's URL,

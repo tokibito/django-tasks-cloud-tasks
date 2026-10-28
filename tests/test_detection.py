@@ -2,6 +2,17 @@
 
 from unittest.mock import patch
 
+import pytest
+
+CLOUD_RUN_METADATA = {
+    "project/numeric-project-id": "123456789012",
+    "instance/region": "projects/123456789012/regions/asia-northeast1",
+}
+
+
+def cloud_run_metadata(path):
+    return CLOUD_RUN_METADATA.get(path)
+
 
 class TestIsCloudRun:
     def test_returns_true_when_k_service_is_set(self):
@@ -65,7 +76,7 @@ class TestDetectGcpLocation:
         with patch.dict("os.environ", {"CLOUD_TASKS_LOCATION": "asia-northeast1"}):
             assert detect_gcp_location() == "asia-northeast1"
 
-    def test_detects_from_cloud_run_region_env(self):
+    def test_detects_from_cloud_run_region_env_with_deprecation_warning(self):
         from django_tasks_cloud_tasks import detect_gcp_location
 
         with patch.dict(
@@ -73,7 +84,18 @@ class TestDetectGcpLocation:
             {"K_SERVICE": "my-service", "CLOUD_RUN_REGION": "us-central1"},
             clear=True,
         ):
-            assert detect_gcp_location() == "us-central1"
+            with pytest.warns(DeprecationWarning, match="CLOUD_RUN_REGION"):
+                assert detect_gcp_location() == "us-central1"
+
+    def test_detects_cloud_run_region_from_metadata(self):
+        from django_tasks_cloud_tasks import detect_gcp_location
+
+        with patch.dict("os.environ", {"K_SERVICE": "my-service"}, clear=True):
+            with patch(
+                "django_tasks_cloud_tasks.detection._get_metadata",
+                side_effect=cloud_run_metadata,
+            ):
+                assert detect_gcp_location() == "asia-northeast1"
 
     def test_returns_none_when_not_detected(self):
         from django_tasks_cloud_tasks import detect_gcp_location
@@ -86,7 +108,7 @@ class TestDetectGcpLocation:
 
 
 class TestDetectTaskHandlerHost:
-    def test_detects_cloud_run_url_with_revision(self):
+    def test_detects_cloud_run_url_from_metadata(self):
         from django_tasks_cloud_tasks import detect_task_handler_host
 
         with patch.dict(
@@ -95,14 +117,72 @@ class TestDetectTaskHandlerHost:
                 "K_SERVICE": "my-service",
                 "K_REVISION": "my-service-00001-abc",
                 "GOOGLE_CLOUD_PROJECT": "my-project",
-                "CLOUD_RUN_REGION": "asia-northeast1",
             },
+            clear=True,
         ):
-            result = detect_task_handler_host()
-            assert (
-                result
-                == "https://my-service-00001-abc---my-service-my-project.asia-northeast1.run.app"
-            )
+            with patch(
+                "django_tasks_cloud_tasks.detection._get_metadata",
+                side_effect=cloud_run_metadata,
+            ):
+                result = detect_task_handler_host()
+
+        # The project number, not the ID, and no revision prefix.
+        assert result == "https://my-service-123456789012.asia-northeast1.run.app"
+
+    def test_detects_cloud_run_url_with_cloud_run_region_env(self):
+        from django_tasks_cloud_tasks import detect_task_handler_host
+
+        with patch.dict(
+            "os.environ",
+            {"K_SERVICE": "my-service", "CLOUD_RUN_REGION": "us-central1"},
+            clear=True,
+        ):
+            with patch(
+                "django_tasks_cloud_tasks.detection._get_metadata",
+                side_effect=cloud_run_metadata,
+            ):
+                with pytest.warns(DeprecationWarning, match="CLOUD_RUN_REGION"):
+                    result = detect_task_handler_host()
+
+        assert result == "https://my-service-123456789012.us-central1.run.app"
+
+    def test_cloud_run_url_needs_the_project_number(self):
+        from django_tasks_cloud_tasks import detect_task_handler_host
+
+        with patch.dict(
+            "os.environ",
+            {"K_SERVICE": "my-service", "GOOGLE_CLOUD_PROJECT": "my-project"},
+            clear=True,
+        ):
+            with patch(
+                "django_tasks_cloud_tasks.detection._get_metadata", return_value=None
+            ):
+                assert detect_task_handler_host() is None
+
+    def test_no_cloud_run_url_for_a_service_name_too_long_for_it(self):
+        from django_tasks_cloud_tasks import detect_task_handler_host
+
+        # 50 + 1 + 12 characters: one more than a DNS label allows.
+        with patch.dict("os.environ", {"K_SERVICE": "s" * 51}, clear=True):
+            with patch(
+                "django_tasks_cloud_tasks.detection._get_metadata",
+                side_effect=cloud_run_metadata,
+            ):
+                assert detect_task_handler_host() is None
+
+    def test_service_url_takes_precedence_on_cloud_run(self):
+        from django_tasks_cloud_tasks import detect_task_handler_host
+
+        with patch.dict(
+            "os.environ",
+            {"K_SERVICE": "my-service", "SERVICE_URL": "https://tasks.example.com"},
+            clear=True,
+        ):
+            with patch(
+                "django_tasks_cloud_tasks.detection._get_metadata",
+                side_effect=cloud_run_metadata,
+            ):
+                assert detect_task_handler_host() == "https://tasks.example.com"
 
     def test_detects_app_engine_url(self):
         from django_tasks_cloud_tasks import detect_task_handler_host

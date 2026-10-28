@@ -85,8 +85,8 @@ TASKS = {
 
 > **Note:** On GCP environments (Cloud Run, App Engine, GCE), the following are automatically detected:
 > - **Project ID**: from `GOOGLE_CLOUD_PROJECT` env var or GCP metadata server
-> - **Location**: from `CLOUD_TASKS_LOCATION`, `CLOUD_RUN_REGION` env var, or metadata server
-> - **Service URL**: from `SERVICE_URL` env var, or generated from `K_SERVICE` (Cloud Run) / `GAE_SERVICE` and `GAE_VERSION` (App Engine)
+> - **Location**: from `CLOUD_TASKS_LOCATION` env var, or metadata server
+> - **Service URL**: from `SERVICE_URL` env var, or generated from `K_SERVICE` and the metadata server (Cloud Run) / `GAE_SERVICE` and `GAE_VERSION` (App Engine)
 > - **Service Account**: from metadata server (for OIDC authentication)
 >
 > **About Service Accounts:** On GCP, applications run with a **runtime service account** (not API keys or JSON key files). Cloud Run, App Engine, and GCE automatically provide credentials via the metadata server. You don't need to create or download any key files.
@@ -291,9 +291,15 @@ Settings are automatically detected from environment variables or GCP metadata:
 | Setting | Detection Source |
 |---------|------------------|
 | `CLOUD_TASKS_PROJECT` | `GOOGLE_CLOUD_PROJECT` env var, or metadata server |
-| `CLOUD_TASKS_LOCATION` | `CLOUD_TASKS_LOCATION`, `CLOUD_RUN_REGION` env var, or metadata server |
-| `TASK_HANDLER_HOST` | `SERVICE_URL` env var, or built from `K_SERVICE` (Cloud Run) / `GAE_SERVICE` and `GAE_VERSION` (App Engine) |
+| `CLOUD_TASKS_LOCATION` | `CLOUD_TASKS_LOCATION` env var, or metadata server (on Cloud Run, the service's region) |
+| `TASK_HANDLER_HOST` | `SERVICE_URL` env var, or built from `K_SERVICE` and the project number and region from the metadata server (Cloud Run, `https://SERVICE-PROJECT_NUMBER.REGION.run.app`) / `GAE_SERVICE` and `GAE_VERSION` (App Engine) |
 | `OIDC_SERVICE_ACCOUNT_EMAIL` | The default service account, from the metadata server |
+
+The `CLOUD_RUN_REGION` environment variable, which Cloud Run does not set,
+is deprecated: it is still read, with a `DeprecationWarning`, and will not
+be read from 0.3.0. Set `CLOUD_TASKS_LOCATION` for the Cloud Tasks location
+and `SERVICE_URL` for the handler host instead, if the detected values do
+not fit.
 
 ### Environment Variables
 
@@ -587,6 +593,19 @@ gcloud tasks queues create high-priority --location asia-northeast1
 ### 3. Configuration
 
 All settings are auto-detected on Cloud Run. No additional configuration needed for basic usage.
+
+The detected handler host is the service URL,
+`https://SERVICE-PROJECT_NUMBER.REGION.run.app`, so a task runs on whichever
+revision receives the traffic when Cloud Tasks dispatches it. To keep tasks
+on one revision during a blue/green deployment, give the revision a
+[traffic tag](https://cloud.google.com/run/docs/rollouts-rollbacks-traffic-migration)
+and set `SERVICE_URL` to the tag's URL; the environment does not reveal the
+tag, so it cannot be detected.
+
+Cloud Run gives a service that URL only when `SERVICE-PROJECT_NUMBER` fits in
+63 characters. For a longer service name nothing is detected, and the
+backend asks for `TASK_HANDLER_HOST` or `SERVICE_URL`: set it to the URL
+`gcloud run services describe` shows.
 
 `--allow-unauthenticated` lets Cloud Tasks reach the service without IAM.
 The task endpoint is still protected: the service account is detected from
