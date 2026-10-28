@@ -334,10 +334,14 @@ Response (success):
 {"status": "success", "task_id": "uuid"}
 ```
 
-Response (error):
+Response (the task raised an exception), with status `500` so that Cloud
+Tasks retries the task:
 ```json
-{"status": "error", "task_id": "uuid", "error": "Error message"}
+{"status": "failed", "task_id": "uuid", "errors": [{"exception": "builtins.ValueError"}]}
 ```
+
+The traceback is not in the response. It is in the log, under the task id;
+see [Logging](#logging).
 
 ## OIDC Authentication
 
@@ -433,9 +437,16 @@ The package logs to the `django_tasks_cloud_tasks` logger: a task that
 completes at `INFO`, a task that fails and a token that fails OIDC
 verification at `ERROR`, and a request the endpoint refuses at `WARNING`.
 
-When neither that logger nor the root logger has a handler, Python prints
-`WARNING` and above to stderr and drops the rest. To see every record,
-attach a handler in `LOGGING`:
+The traceback of a failed task is in a record of Django's own
+`django.tasks` logger: `Task id=... path=... state=FAILED`, at `ERROR`, with
+the exception attached. Django's default logging configuration prints the
+`django` loggers to the console only when `DEBUG` is on, so in production
+that record is dropped unless a handler is attached to it.
+
+When neither the `django_tasks_cloud_tasks` logger nor the root logger has a
+handler, Python prints `WARNING` and above to stderr and drops the rest. To
+see every record, including the tracebacks, attach a handler to both
+loggers in `LOGGING`:
 
 ```python
 LOGGING = {
@@ -448,6 +459,11 @@ LOGGING = {
         "django_tasks_cloud_tasks": {
             "handlers": ["console"],
             "level": "INFO",
+        },
+        "django.tasks": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
         },
     },
 }

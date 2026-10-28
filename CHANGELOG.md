@@ -28,6 +28,17 @@
   account, as in local development, the endpoint stays open, as before.
   ([#7](https://github.com/tokibito/django-tasks-cloud-tasks/issues/7))
 
+- **A failed task's traceback is no longer in the response of the execute
+  endpoint.** The `500` response listed `errors[].traceback`, which Cloud
+  Tasks does not keep and anyone who can reach the endpoint could read. The
+  response now carries the exception class in `errors[].exception` and the
+  `task_id`. The traceback is in the log, in the `ERROR` record of Django's
+  `django.tasks` logger, as it was before; the README's *Logging* section
+  says so and shows how to attach a handler to that logger, which Django's
+  default configuration leaves without one when `DEBUG` is off. A caller
+  that read the traceback from the response reads the log instead.
+  ([#11](https://github.com/tokibito/django-tasks-cloud-tasks/issues/11))
+
 ### Fixed
 
 - A token that failed OIDC verification was reported twice: once through

@@ -1,6 +1,7 @@
 """Tests for views.py"""
 
 import json
+import logging
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -98,6 +99,54 @@ class TestExecuteTaskView:
         assert data["status"] == "failed"
         assert len(data["errors"]) == 1
         assert "RuntimeError" in data["errors"][0]["exception"]
+
+    @override_settings(
+        TASKS={
+            "default": {
+                "BACKEND": "django_tasks_cloud_tasks.CloudTasksBackend",
+                "QUEUES": ["default"],
+                "OPTIONS": {
+                    "CLOUD_TASKS_PROJECT": "test-project",
+                    "CLOUD_TASKS_LOCATION": "us-central1",
+                    "TASK_HANDLER_HOST": "https://test.example.com",
+                },
+            },
+        }
+    )
+    def test_failure_traceback_is_logged_not_returned(self, caplog):
+        from django_tasks_cloud_tasks.views import ExecuteTaskView
+        from tests.tasks import failing_view_task
+
+        payload = {
+            "task_id": "view-test-task-789",
+            "task_path": failing_view_task.module_path,
+            "args": [],
+            "kwargs": {},
+            "queue_name": "default",
+            "backend": "default",
+            "priority": 0,
+            "takes_context": False,
+            "enqueued_at": "2024-01-01T00:00:00+00:00",
+        }
+        request = RequestFactory().post(
+            "/tasks/execute/",
+            data=json.dumps(payload),
+            content_type="application/json",
+        )
+
+        with caplog.at_level(logging.ERROR, logger="django.tasks"):
+            response = ExecuteTaskView.as_view()(request)
+
+        assert response.status_code == 500
+        assert json.loads(response.content) == {
+            "status": "failed",
+            "task_id": "view-test-task-789",
+            "errors": [{"exception": "builtins.RuntimeError"}],
+        }
+        [record] = [r for r in caplog.records if r.name == "django.tasks"]
+        assert record.levelno == logging.ERROR
+        assert "view-test-task-789" in record.getMessage()
+        assert isinstance(record.exc_info[1], RuntimeError)
 
     @override_settings(
         TASKS={

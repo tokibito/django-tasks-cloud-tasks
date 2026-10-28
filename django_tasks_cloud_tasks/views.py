@@ -96,16 +96,16 @@ class ExecuteTaskView(View):
                 }
             )
         else:
-            # Return 500 to enable Cloud Tasks retry
+            # Return 500 to enable Cloud Tasks retry. The traceback stays out
+            # of the response: Cloud Tasks does not keep the body, and anyone
+            # who can reach the endpoint would read it. It is logged instead,
+            # with the ERROR record of the django.tasks logger.
             return JsonResponse(
                 {
                     "status": "failed",
                     "task_id": task_result.id,
                     "errors": [
-                        {
-                            "exception": err.exception_class_path,
-                            "traceback": err.traceback,
-                        }
+                        {"exception": err.exception_class_path}
                         for err in task_result.errors
                     ],
                 },
