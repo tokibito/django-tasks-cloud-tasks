@@ -41,6 +41,15 @@
 
 ### Fixed
 
+- **On App Engine, a service other than `default` enqueued tasks to the
+  default service.** The detected `TASK_HANDLER_HOST` was built from
+  `GAE_VERSION` and the project only, which is the default service's URL,
+  so Cloud Tasks sent the tasks of, say, an `api` service to whatever runs
+  as `default`. A non-default service now gets
+  `https://VERSION-dot-SERVICE-dot-PROJECT.appspot.com`, as in
+  django-database-task. Projects on the default service, and projects that
+  set `TASK_HANDLER_HOST` or `SERVICE_URL`, see no change.
+  ([#5](https://github.com/tokibito/django-tasks-cloud-tasks/issues/5))
 - **A task whose function could not be imported left no trace but a
   generic error.** When the module was renamed, the function removed, or
   the revision serving the request ran older code than the one that

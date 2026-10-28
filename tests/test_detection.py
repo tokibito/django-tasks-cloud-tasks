@@ -118,6 +118,39 @@ class TestDetectTaskHandlerHost:
             result = detect_task_handler_host()
             assert result == "https://20240101t123456-dot-my-gae-project.appspot.com"
 
+    def test_detects_app_engine_url_for_default_service(self):
+        from django_tasks_cloud_tasks import detect_task_handler_host
+
+        with patch.dict(
+            "os.environ",
+            {
+                "GAE_APPLICATION": "asia-northeast1~my-gae-project",
+                "GAE_SERVICE": "default",
+                "GAE_VERSION": "20240101t123456",
+            },
+            clear=True,
+        ):
+            result = detect_task_handler_host()
+            assert result == "https://20240101t123456-dot-my-gae-project.appspot.com"
+
+    def test_detects_app_engine_url_for_other_service(self):
+        from django_tasks_cloud_tasks import detect_task_handler_host
+
+        with patch.dict(
+            "os.environ",
+            {
+                "GAE_APPLICATION": "asia-northeast1~my-gae-project",
+                "GAE_SERVICE": "api",
+                "GAE_VERSION": "20240101t123456",
+            },
+            clear=True,
+        ):
+            result = detect_task_handler_host()
+            assert (
+                result
+                == "https://20240101t123456-dot-api-dot-my-gae-project.appspot.com"
+            )
+
     def test_returns_none_when_not_in_gcp_environment(self):
         from django_tasks_cloud_tasks import detect_task_handler_host
 

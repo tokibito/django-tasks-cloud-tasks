@@ -86,7 +86,7 @@ TASKS = {
 > **Note:** On GCP environments (Cloud Run, App Engine, GCE), the following are automatically detected:
 > - **Project ID**: from `GOOGLE_CLOUD_PROJECT` env var or GCP metadata server
 > - **Location**: from `CLOUD_TASKS_LOCATION`, `CLOUD_RUN_REGION` env var, or metadata server
-> - **Service URL**: from `SERVICE_URL` env var, or generated from `K_SERVICE` (Cloud Run) / `GAE_SERVICE` (App Engine)
+> - **Service URL**: from `SERVICE_URL` env var, or generated from `K_SERVICE` (Cloud Run) / `GAE_SERVICE` and `GAE_VERSION` (App Engine)
 > - **Service Account**: from metadata server (for OIDC authentication)
 >
 > **About Service Accounts:** On GCP, applications run with a **runtime service account** (not API keys or JSON key files). Cloud Run, App Engine, and GCE automatically provide credentials via the metadata server. You don't need to create or download any key files.
@@ -292,7 +292,7 @@ Settings are automatically detected from environment variables or GCP metadata:
 |---------|------------------|
 | `CLOUD_TASKS_PROJECT` | `GOOGLE_CLOUD_PROJECT` env var, or metadata server |
 | `CLOUD_TASKS_LOCATION` | `CLOUD_TASKS_LOCATION`, `CLOUD_RUN_REGION` env var, or metadata server |
-| `TASK_HANDLER_HOST` | `SERVICE_URL` env var, or built from `K_SERVICE` (Cloud Run) / `GAE_SERVICE` (App Engine) |
+| `TASK_HANDLER_HOST` | `SERVICE_URL` env var, or built from `K_SERVICE` (Cloud Run) / `GAE_SERVICE` and `GAE_VERSION` (App Engine) |
 | `OIDC_SERVICE_ACCOUNT_EMAIL` | The default service account, from the metadata server |
 
 ### Environment Variables

@@ -86,7 +86,7 @@ def detect_task_handler_host():
     Priority:
     1. SERVICE_URL environment variable (explicit)
     2. Cloud Run: Generate URL from K_SERVICE
-    3. App Engine: Generate URL from GAE_VERSION
+    3. App Engine: Generate URL from GAE_VERSION and GAE_SERVICE
 
     Supports Blue/Green deployment.
     """
@@ -108,11 +108,15 @@ def detect_task_handler_host():
             return f"https://{service}-{project}.{region}.run.app"
 
     if is_app_engine():
+        service = os.environ.get("GAE_SERVICE")
         version = os.environ.get("GAE_VERSION")
         project = detect_gcp_project()
 
         if version and project:
-            # Generate version-specific URL
+            # Generate version-specific URL. A service other than the
+            # default one is reached under its own name.
+            if service and service != "default":
+                return f"https://{version}-dot-{service}-dot-{project}.appspot.com"
             return f"https://{version}-dot-{project}.appspot.com"
 
     return None
