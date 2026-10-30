@@ -6,8 +6,8 @@ This directory contains a sample project for testing `django-tasks-cloud-tasks`.
 
 - Python 3.12 or later
 - Django 6.0 or later
-- Google Cloud SDK (gcloud command)
-- Cloud Tasks emulator (for local testing) or GCP project
+- Docker, to run the Cloud Tasks emulator locally, or a GCP project
+- Google Cloud SDK (gcloud command), to deploy to GCP
 
 ## Setup
 
@@ -130,50 +130,59 @@ curl -X POST http://localhost:8000/cloudtasks/execute/ \
 
 ## Testing with Cloud Tasks emulator
 
-### 1. Install and start Cloud Tasks emulator
+Google does not ship a Cloud Tasks emulator.
+[aertje/cloud-tasks-emulator](https://github.com/aertje/cloud-tasks-emulator)
+is a community one, not affiliated with Google, that implements the Cloud
+Tasks v2 API and dispatches HTTP tasks the way Cloud Tasks does. With
+`CLOUD_TASKS_EMULATOR_HOST` set, the backend creates its tasks there instead
+of in Google Cloud, over a plaintext connection and without credentials, and
+logs `Using the Cloud Tasks emulator at ...` when it connects.
+
+### 1. Start the emulator with the sample project's queues
 
 ```bash
-# Install gcloud component (first time only)
-gcloud components install cloud-tasks-emulator
-
-# Start emulator
-gcloud beta emulators tasks start --host-port=localhost:8123
+docker run --rm -p 8123:8123 --add-host=host.docker.internal:host-gateway \
+  ghcr.io/aertje/cloud-tasks-emulator:latest \
+  -host 0.0.0.0 -port 8123 \
+  -initial-queue projects/sample-project/locations/asia-northeast1/queues/default \
+  -initial-queue projects/sample-project/locations/asia-northeast1/queues/high-priority
 ```
 
-### 2. Set environment variables for emulator
+### 2. Point the sample project at the emulator and start Django
 
 In another terminal:
 
 ```bash
-# Environment variables to connect to emulator
+cd examples/sample_project
+
 export CLOUD_TASKS_EMULATOR_HOST=localhost:8123
 export GOOGLE_CLOUD_PROJECT="sample-project"
 export CLOUD_TASKS_LOCATION="asia-northeast1"
-export SERVICE_URL="http://localhost:8000"
+export SERVICE_URL="http://host.docker.internal:8000"
+
+python manage.py runserver 0.0.0.0:8000
 ```
 
-### 3. Create Cloud Tasks queues
+The sample project's `ALLOWED_HOSTS` is `["*"]`, so it accepts the requests
+the emulator sends to `host.docker.internal`.
 
-```bash
-# Create queues with gcloud (against emulator)
-gcloud tasks queues create default \
-  --location=asia-northeast1 \
-  --project=sample-project
+### 3. Enqueue tasks via Web UI
 
-gcloud tasks queues create high-priority \
-  --location=asia-northeast1 \
-  --project=sample-project
-```
+Open http://localhost:8000/ in your browser and use the forms to enqueue
+tasks. The emulator calls `/cloudtasks/execute/` for each of them, and the
+Django server's console shows the request; the failing task is retried with
+the emulator's default retry settings.
 
-### 4. Start Django server
-
-```bash
-python manage.py runserver
-```
-
-### 5. Enqueue tasks via Web UI
-
-Open http://localhost:8000/ in your browser and use the forms to enqueue tasks.
+- The emulator runs in a container, so it reaches the Django server on the
+  host as `host.docker.internal`. `--add-host` makes that name work on Linux;
+  Docker Desktop provides it already. Django has to listen on `0.0.0.0` and
+  accept that host name in `ALLOWED_HOSTS`.
+- Queues are created when the emulator starts, one `-initial-queue` per
+  queue, named after the project and location the backend uses.
+- Leave `OIDC_SERVICE_ACCOUNT_EMAIL` unset. The emulator signs its OIDC
+  tokens with its own key, which the endpoint does not accept, so with it
+  set every task is refused with `401`. Without it the endpoint does not
+  check tokens, which is what local development needs.
 
 ## Deployment to GCP (Cloud Run)
 
@@ -274,3 +283,8 @@ Make sure the emulator is running and set the environment variable:
 ```bash
 export CLOUD_TASKS_EMULATOR_HOST=localhost:8123
 ```
+
+If tasks are created but never reach Django, the emulator cannot reach
+`SERVICE_URL`: from inside its container `localhost` is the container
+itself, so use `http://host.docker.internal:8000` and run Django on
+`0.0.0.0:8000`.
