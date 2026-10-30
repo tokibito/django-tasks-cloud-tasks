@@ -39,6 +39,15 @@
   that read the traceback from the response reads the log instead.
   ([#11](https://github.com/tokibito/django-tasks-cloud-tasks/issues/11))
 
+- **`enqueue()` reuses one Cloud Tasks client per backend.** It created a
+  `CloudTasksClient` on every call, opening a gRPC channel and loading
+  credentials each time, and never closed the channels. The backend now
+  creates the client on first use and keeps it, as the `client` property;
+  Django keeps a backend per thread, so that is one client per thread.
+  `close()` closes the channel, and the next enqueue opens a new one. A
+  subclass or a test can replace the client by overriding the property.
+  ([#12](https://github.com/tokibito/django-tasks-cloud-tasks/issues/12))
+
 ### Deprecated
 
 - **`CLOUD_RUN_REGION`.** Cloud Run does not set this environment variable,

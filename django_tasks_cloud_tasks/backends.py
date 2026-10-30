@@ -71,6 +71,29 @@ class CloudTasksBackend(BaseTaskBackend):
                 "Cloud Run/App Engine for auto-detection."
             )
 
+        self._client = None
+
+    @property
+    def client(self):
+        """
+        The Cloud Tasks client, created on first use and reused after.
+
+        Creating one opens a gRPC channel and loads credentials, so it is
+        kept for every enqueue made through this backend. Django keeps a
+        backend per thread, so each thread gets its own client.
+        """
+        if self._client is None:
+            from google.cloud import tasks_v2
+
+            self._client = tasks_v2.CloudTasksClient()
+        return self._client
+
+    def close(self):
+        """Close the client's channel; the next enqueue creates a new one."""
+        if self._client is not None:
+            self._client.transport.close()
+            self._client = None
+
     def enqueue(self, task, args, kwargs):
         """Enqueue task to Cloud Tasks."""
         from google.cloud import tasks_v2
@@ -96,7 +119,7 @@ class CloudTasksBackend(BaseTaskBackend):
 
         # Create task in Cloud Tasks
         # Use task.queue_name as Cloud Tasks queue ID
-        client = tasks_v2.CloudTasksClient()
+        client = self.client
         parent = client.queue_path(self.project_id, self.location, task.queue_name)
 
         # Build task execution URL

@@ -163,3 +163,56 @@ class TestCloudTasksBackendEnqueue:
         assert result.args == ["hello"]
         assert result.kwargs == {"count": 3}
         mock_client.create_task.assert_called_once()
+
+
+@pytest.mark.django_db
+class TestCloudTasksBackendClient:
+    def backend(self):
+        from django_tasks_cloud_tasks.backends import CloudTasksBackend
+
+        with patch(
+            "django_tasks_cloud_tasks.detection.detect_default_service_account",
+            return_value=None,
+        ):
+            return CloudTasksBackend(
+                "default",
+                {
+                    "QUEUES": ["default"],
+                    "OPTIONS": {
+                        "CLOUD_TASKS_PROJECT": "test-project",
+                        "CLOUD_TASKS_LOCATION": "us-central1",
+                        "TASK_HANDLER_HOST": "https://test.example.com",
+                    },
+                },
+            )
+
+    @patch("google.cloud.tasks_v2.CloudTasksClient")
+    def test_client_is_created_once_and_reused(self, mock_client_class):
+        from tests.tasks import add_numbers
+
+        backend = self.backend()
+        mock_client_class.assert_not_called()
+
+        backend.enqueue(add_numbers, [1, 2], {})
+        backend.enqueue(add_numbers, [3, 4], {})
+
+        mock_client_class.assert_called_once_with()
+        assert mock_client_class.return_value.create_task.call_count == 2
+
+    @patch("google.cloud.tasks_v2.CloudTasksClient")
+    def test_close_closes_the_channel_and_drops_the_client(self, mock_client_class):
+        from tests.tasks import add_numbers
+
+        first, second = MagicMock(), MagicMock()
+        mock_client_class.side_effect = [first, second]
+        backend = self.backend()
+
+        backend.enqueue(add_numbers, [1, 2], {})
+        backend.close()
+        backend.enqueue(add_numbers, [3, 4], {})
+
+        first.transport.close.assert_called_once_with()
+        assert backend.client is second
+
+    def test_close_without_a_client_does_nothing(self):
+        self.backend().close()
