@@ -1,6 +1,8 @@
 """Cloud Tasks backend for Django tasks framework."""
 
 import json
+import logging
+import os
 
 from django.core.exceptions import ImproperlyConfigured
 from django.tasks.backends.base import BaseTaskBackend
@@ -8,6 +10,8 @@ from django.tasks.base import TaskResult, TaskResultStatus
 from django.tasks.signals import task_enqueued
 from django.utils import timezone
 from django.utils.crypto import get_random_string
+
+logger = logging.getLogger("django_tasks_cloud_tasks")
 
 
 class CloudTasksBackend(BaseTaskBackend):
@@ -81,11 +85,30 @@ class CloudTasksBackend(BaseTaskBackend):
         Creating one opens a gRPC channel and loads credentials, so it is
         kept for every enqueue made through this backend. Django keeps a
         backend per thread, so each thread gets its own client.
+
+        With the CLOUD_TASKS_EMULATOR_HOST environment variable set, as
+        host:port, the client talks to an emulator there instead, over a
+        plaintext channel and without credentials.
         """
         if self._client is None:
             from google.cloud import tasks_v2
 
-            self._client = tasks_v2.CloudTasksClient()
+            emulator_host = os.environ.get("CLOUD_TASKS_EMULATOR_HOST")
+            if emulator_host:
+                import grpc
+                from google.cloud.tasks_v2.services.cloud_tasks.transports import (
+                    CloudTasksGrpcTransport,
+                )
+
+                # A transport given a channel uses it as it is and does not
+                # look for credentials.
+                channel = grpc.insecure_channel(emulator_host)
+                self._client = tasks_v2.CloudTasksClient(
+                    transport=CloudTasksGrpcTransport(channel=channel)
+                )
+                logger.info("Using the Cloud Tasks emulator at %s", emulator_host)
+            else:
+                self._client = tasks_v2.CloudTasksClient()
         return self._client
 
     def close(self):

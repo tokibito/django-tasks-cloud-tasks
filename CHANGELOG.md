@@ -59,6 +59,13 @@
 
 ### Fixed
 
+- **`CLOUD_TASKS_EMULATOR_HOST` was documented but not read.** With it
+  set, the backend still enqueued to the real Cloud Tasks API with whatever
+  local credentials there were. The client now connects to the emulator at
+  that `host:port`, over a plaintext channel and without credentials, and
+  logs `Using the Cloud Tasks emulator at ...` once when it does. Without
+  the variable nothing changes.
+  ([#6](https://github.com/tokibito/django-tasks-cloud-tasks/issues/6))
 - **On Cloud Run, the detected handler host did not exist.** Without
   `SERVICE_URL`, the host was built from the project ID, where Cloud Run's
   URL has the project number, and with the revision as a prefix, which is
