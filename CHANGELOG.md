@@ -116,6 +116,12 @@
 
 ### Documentation
 
+- The emulator steps in the README, `examples/README.md` and the sample
+  project's page use
+  [aertje/cloud-tasks-emulator](https://github.com/aertje/cloud-tasks-emulator).
+  They described `gcloud beta emulators tasks` and
+  `gcloud components install cloud-tasks-emulator`, which do not exist.
+  ([#6](https://github.com/tokibito/django-tasks-cloud-tasks/issues/6))
 - The architecture diagram in the README shows the result of `enqueue()`
   in `READY`, the status the backend returns. It said `NEW`, which
   `TaskResultStatus` does not have.

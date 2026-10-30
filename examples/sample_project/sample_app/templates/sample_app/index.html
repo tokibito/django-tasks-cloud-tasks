@@ -223,23 +223,21 @@ curl -X POST http://localhost:8000/cloudtasks/execute/ \
 
     <div class="info-card">
         <h3>With Cloud Tasks Emulator</h3>
-        <p>Run the following commands to start the emulator:</p>
+        <p>Start the community <a href="https://github.com/aertje/cloud-tasks-emulator">aertje/cloud-tasks-emulator</a> with the sample project's queues, then point Django at it (see examples/README.md):</p>
         <pre>
-# Start Cloud Tasks emulator
-gcloud beta emulators tasks start --host-port=localhost:8123
+# Start the emulator
+docker run --rm -p 8123:8123 --add-host=host.docker.internal:host-gateway \
+  ghcr.io/aertje/cloud-tasks-emulator:latest \
+  -host 0.0.0.0 -port 8123 \
+  -initial-queue projects/sample-project/locations/asia-northeast1/queues/default \
+  -initial-queue projects/sample-project/locations/asia-northeast1/queues/high-priority
 
-# Set environment variables
+# In another terminal
 export CLOUD_TASKS_EMULATOR_HOST=localhost:8123
 export GOOGLE_CLOUD_PROJECT="sample-project"
 export CLOUD_TASKS_LOCATION="asia-northeast1"
-export SERVICE_URL="http://localhost:8000"
-
-# Create queues
-gcloud tasks queues create default --location=asia-northeast1 --project=sample-project
-gcloud tasks queues create high-priority --location=asia-northeast1 --project=sample-project
-
-# Start Django server
-python manage.py runserver</pre>
+export SERVICE_URL="http://host.docker.internal:8000"
+python manage.py runserver 0.0.0.0:8000</pre>
     </div>
 </body>
 </html>
