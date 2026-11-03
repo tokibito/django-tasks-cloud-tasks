@@ -123,6 +123,12 @@
 
 ### Documentation
 
+- A *Results* section in the README: results are not stored, so
+  `refresh()` and `get_result()` raise `NotImplementedError` and the
+  `TaskResult` from `enqueue()` stays `READY`; what it is still good for,
+  where a task's output has to go instead, and the backend's capability
+  flags beside the sibling packages'. *Features* mentions it.
+  ([#20](https://github.com/tokibito/django-tasks-cloud-tasks/issues/20))
 - The emulator steps in the README, `examples/README.md` and the sample
   project's page use
   [aertje/cloud-tasks-emulator](https://github.com/aertje/cloud-tasks-emulator).
