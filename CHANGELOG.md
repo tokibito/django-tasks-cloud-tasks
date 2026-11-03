@@ -123,6 +123,12 @@
 
 ### Documentation
 
+- A *Retries and limits* section in the README: which answers of the
+  execute endpoint Cloud Tasks retries (all outside 2xx), that the retry
+  configuration belongs to the queue and what a new queue does, that a task
+  can run more than once, the 10-minute dispatch deadline, and the limits a
+  task meets at enqueue time.
+  ([#19](https://github.com/tokibito/django-tasks-cloud-tasks/issues/19))
 - The emulator steps in the README, `examples/README.md` and the sample
   project's page use
   [aertje/cloud-tasks-emulator](https://github.com/aertje/cloud-tasks-emulator).

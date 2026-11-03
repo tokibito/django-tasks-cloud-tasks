@@ -361,6 +361,82 @@ outside 2xx, so a payload enqueued by another version of the application
 during a deploy can still be picked up by a revision that understands it.
 The log names the cause; see [Logging](#logging).
 
+## Retries and limits
+
+Cloud Tasks, not this package, decides when a task runs again. What follows
+is how its rules meet the execute endpoint; the
+[Cloud Tasks documentation](https://cloud.google.com/tasks/docs/configuring-queues#retry)
+has the details.
+
+### Every answer outside 2xx is retried
+
+Cloud Tasks deletes a task when the endpoint answers 2xx. Any other answer,
+or none before the deadline, is a failed attempt, and the task is retried
+under the queue's retry configuration. For this endpoint that means:
+
+| Answer | When | What Cloud Tasks does |
+|--------|------|-----------------------|
+| `200` | The task ran and returned | Deletes the task |
+| `500` | The task raised, or its function could not be imported | Retries it |
+| `400` | The payload cannot be executed | Retries it |
+| `401` | The OIDC token is missing or invalid | Retries it |
+
+A task that can never succeed, because of bad arguments, a bug, or code that
+is not deployed, is retried until the queue gives up. A misconfigured
+audience makes every task answer `401` and be retried the same way. Each
+attempt is logged (see [Logging](#logging)), which is where such a task shows
+up.
+
+### The retry configuration belongs to the queue
+
+In the Cloud Tasks v2 API a task cannot carry its own retry policy; the
+queue's `RetryConfig` applies to every task in it. A new queue retries up to
+100 times (`max_attempts`), waiting from 0.1 seconds (`min_backoff`) up to an
+hour (`max_backoff`) between attempts, doubling the wait up to 16 times
+(`max_doublings`). `max_attempts: -1` retries without limit, and
+`max_retry_duration` caps the total time. When the queue gives up, the task
+is deleted and nothing on the application side records it, since results
+are not stored (see [Results](#results)).
+
+Tasks with different needs go on different queues, set with `queue_name`:
+
+```bash
+# A queue whose tasks are tried once and never retried
+gcloud tasks queues create send-once --location=asia-northeast1 --max-attempts=1
+```
+
+### A task can run more than once
+
+Cloud Tasks delivers at least once: a task is retried after a failure, and
+the documentation says that a small number of duplicate executions happen
+even without one. Write task functions so that running one twice does no
+harm, or have them check whether their work is already done. A queue with
+`max_attempts: 1` stops the retries but not those rare duplicates.
+
+### Deadlines
+
+Cloud Tasks waits 10 minutes for the endpoint to answer an HTTP task. A task
+that takes longer has its request cancelled and is retried, while the first
+attempt may still be running, so a long task can run twice at once. The
+service's own request timeout (Cloud Run's request timeout, gunicorn's
+worker timeout) applies as well. Cloud Tasks allows a task a deadline
+between 15 seconds and 30 minutes, but the backend does not set one, so
+every task gets the 10-minute default. Work that can take longer belongs
+in smaller tasks.
+
+### Limits at enqueue time
+
+- A task, payload included, can be at most 1 MiB. The payload carries the
+  task's arguments, so large data belongs in storage, with its key as the
+  argument.
+- `run_after` can be at most 30 days ahead.
+- A queue that does not exist, a task that breaks a limit, or a missing
+  permission makes `enqueue()` raise the error from the Cloud Tasks client,
+  a `google.api_core.exceptions` exception such as `NotFound` or
+  `InvalidArgument`. The backend does not translate it.
+- Cloud Tasks deletes a task 31 days after it was created, whatever its
+  retry configuration says.
+
 ## OIDC Authentication
 
 Cloud Tasks can sign each request with an OIDC token for a service account,
