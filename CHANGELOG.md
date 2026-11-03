@@ -148,6 +148,12 @@
   nothing more.
   ([#22](https://github.com/tokibito/django-tasks-cloud-tasks/issues/22))
 
+- A *Retries and limits* section in the README: which answers of the
+  execute endpoint Cloud Tasks retries (all outside 2xx), that the retry
+  configuration belongs to the queue and what a new queue does, that a task
+  can run more than once, the 10-minute dispatch deadline, and the limits a
+  task meets at enqueue time.
+  ([#19](https://github.com/tokibito/django-tasks-cloud-tasks/issues/19))
 ## 0.1.0
 
 Initial release: a task backend for Django 6.0's task framework on Google
