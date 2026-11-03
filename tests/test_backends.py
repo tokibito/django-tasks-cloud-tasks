@@ -216,3 +216,33 @@ class TestCloudTasksBackendClient:
 
     def test_close_without_a_client_does_nothing(self):
         self.backend().close()
+
+    def test_emulator_host_gets_a_plaintext_client_without_credentials(self, caplog):
+        import logging
+
+        import grpc
+
+        backend = self.backend()
+        with patch.dict("os.environ", {"CLOUD_TASKS_EMULATOR_HOST": "localhost:8123"}):
+            with patch(
+                "grpc.insecure_channel", return_value=MagicMock(spec=grpc.Channel)
+            ) as insecure_channel:
+                with patch(
+                    "google.auth.default", side_effect=AssertionError("no credentials")
+                ):
+                    with caplog.at_level(
+                        logging.INFO, logger="django_tasks_cloud_tasks"
+                    ):
+                        client = backend.client
+
+        insecure_channel.assert_called_once_with("localhost:8123")
+        assert client.transport.grpc_channel is insecure_channel.return_value
+        assert "Using the Cloud Tasks emulator at localhost:8123" in caplog.text
+
+    @patch("google.cloud.tasks_v2.CloudTasksClient")
+    def test_without_emulator_host_the_default_client_is_used(self, mock_client_class):
+        backend = self.backend()
+        with patch.dict("os.environ", {}, clear=True):
+            assert backend.client is mock_client_class.return_value
+
+        mock_client_class.assert_called_once_with()
