@@ -17,6 +17,9 @@ A Google Cloud Tasks backend for Django 6.0's built-in task framework.
 - **Delayed execution** - Schedule tasks to run at a specific time with `run_after`
 - **Task context** - Access task metadata via context
 
+Results are not stored: a task's return value and final status cannot be
+read back after `enqueue()`. See [Results](#results).
+
 ## Architecture
 
 ```mermaid
@@ -211,6 +214,38 @@ def good_task(user_id, created_at_iso):
 
 good_task.enqueue(123, datetime.now().isoformat())  # OK
 ```
+
+### Results
+
+Results are not stored. The payload goes to Cloud Tasks, and the task's
+return value and outcome exist only inside the request that runs it, which
+logs them and returns. So the backend sets `supports_get_result = False`,
+and unlike django-database-task and django-tasks-redis:
+
+```python
+result = add_numbers.enqueue(1, 2)
+
+result.id            # use it to find the task in the log
+result.status        # READY, and it stays READY; is_finished is never True
+result.refresh()     # NotImplementedError
+result.return_value  # ValueError: Task has not finished yet
+default_task_backend.get_result(result.id)  # NotImplementedError
+```
+
+The `TaskResult` that `enqueue()` returns is a snapshot of the enqueue. Its
+`id` is in every log record the execute endpoint writes for the task (see
+[Logging](#logging)). A task that produces something the application needs
+later has to store it itself, in a model or the cache for example, or from a
+receiver of the `task_finished` signal, which is sent in the request that
+ran the task with its final `TaskResult`, `return_value` included when it
+succeeded.
+
+| Feature | This backend | django-database-task, django-tasks-redis |
+|---------|--------------|------------------------------------------|
+| `supports_defer` (`run_after`) | Yes | Yes |
+| `supports_async_task` | Yes | Yes |
+| `supports_get_result` | **No** | Yes |
+| `supports_priority` | **No** (see [Priority](#priority)) | Yes |
 
 ### Priority
 
